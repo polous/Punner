@@ -2,18 +2,19 @@
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.EventSystems;
+using UnityEngine.UI;
 
 public class Main : MonoBehaviour
 {
     public Transform Level;
-    //public Transform LevelPart1;
-    //public Transform LevelPart2;
     int worldSize = 80;
     public float xPos;
     public float xLimit;
     public Player player;
 
     public Transform Party;
+    public Transform Party_M, Party_R, Party_H;
+    public List<Player> playersInParty = new List<Player>();
 
     public float worldMoveSpeed;
 
@@ -21,7 +22,8 @@ public class Main : MonoBehaviour
 
     public GameObject rocketPrefab; // префаб ракеты
     public Transform rocketsPool; // пул прожектайлов
-
+    public GameObject healthPanelPrefab; // префаб UI панели здоровья
+    public Transform healthPanelsPool; // пул UI панелей здоровья
 
     void Awake()
     {
@@ -36,7 +38,15 @@ public class Main : MonoBehaviour
 
     void Start()
     {
-
+        foreach (Player p in Party.GetComponentsInChildren<Player>())
+        {
+            playersInParty.Add(p);
+            Transform hPanelp = Instantiate(healthPanelPrefab).transform;
+            hPanelp.SetParent(healthPanelsPool);
+            hPanelp.localScale = new Vector3(1, 1, 1);
+            p.healthPanel = hPanelp;
+            p.healthPanelFill = hPanelp.GetChild(0).GetComponent<Image>();
+        }
     }
 
     // Update is called once per frame

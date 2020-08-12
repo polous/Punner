@@ -2,10 +2,19 @@
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
+using UnityEngine.UI;
+
+
+public enum playerType
+{
+    Range,
+    Melee,
+    Heal
+}
 
 public class Player : MonoBehaviour
 {
-    public Main main;
+    public playerType type; // тип игрока
     public float moveSpeed; // базовая скорость перемещения игрока
     public float shootRange; // дистанция стрельбы
     public float shootSpreadCoeff;
@@ -17,75 +26,196 @@ public class Player : MonoBehaviour
 
     public float maxHealthPoint; // максимальный запас здоровья
     public float curHealthPoint; // текущий запас здоровья
+    public Transform healthPanel;
+    public Image healthPanelFill;
+
+    public float healPointsRecoveryCount; // количество хп, восстанавливаемое хиллером
+    public float healReloadingTime; // время перезарядки лечилки
+    [SerializeField] bool healReloading;
 
     public bool inJail;
     public bool inParty;
 
+    Vector3 rndV3;
+    RaycastHit hit;
+
+    public Main main;
     public Collider coll;
 
-    Vector3 rndV3;
+    public Color bodyColor;
+    [HideInInspector] public MaterialPropertyBlock MPB;
+    [HideInInspector] public MeshRenderer mr;
 
 
     void Start()
     {
+        MPB = new MaterialPropertyBlock();
+        mr = GetComponentInChildren<MeshRenderer>();
+        mr.GetPropertyBlock(MPB);
+        MPB.SetColor("_Color", bodyColor);
+        mr.SetPropertyBlock(MPB);
+
         main = FindObjectOfType<Main>();
         if (inJail) coll.enabled = false;
+
+        curHealthPoint = maxHealthPoint;
     }
+
 
     void Update()
     {
         if (main == null) return;
+        if (inParty && healthPanel != null)
+        {
+            healthPanel.position = Camera.main.WorldToScreenPoint(transform.position + Vector3.up * coll.bounds.size.y);
+            healthPanelFill.fillAmount = curHealthPoint / maxHealthPoint;
+        }
 
         if (!inJail)
         {
             if (inParty)
             {
-                Vector3 fwd = transform.forward; fwd.y = 0;
-                if (!reloading)
+                if (type == playerType.Range)
                 {
-                    // вытаскиваем из пула и настраиваем прожектайл 
-                    Rocket rocket = main.rocketsPool.GetChild(0).GetComponent<Rocket>();
-                    rocket.transform.parent = null;
-                    rocket.transform.position = transform.position + 1.4f * Vector3.up;
-                    rocket.startPoint = rocket.transform.position;
-                    rocket.maxRange = shootRange;
-                    rocket.MyShooterTag = tag;
-                    rocket.flying = true;
-                    rocket.speed = rocketSpeed;
-                    rocket.damage = rocketDamage;
+                    Vector3 fwd = transform.forward; fwd.y = 0;
+                    if (!reloading)
+                    {
+                        // вытаскиваем из пула и настраиваем прожектайл 
+                        Rocket rocket = main.rocketsPool.GetChild(0).GetComponent<Rocket>();
+                        rocket.transform.parent = null;
+                        rocket.transform.position = coll.bounds.center;
+                        rocket.startPoint = rocket.transform.position;
+                        rocket.maxRange = shootRange;
+                        rocket.MyShooterTag = tag;
+                        rocket.flying = true;
+                        rocket.speed = rocketSpeed;
+                        rocket.damage = rocketDamage;
+                        rocket.RocketTypeChanger(rocketType.Bullet);
 
-                    Vector3 randomVector = new Vector3(Random.Range(-shootSpreadCoeff, +shootSpreadCoeff), 0, Random.Range(-shootSpreadCoeff, +shootSpreadCoeff));
-                    Vector3 lastPoint = transform.position + transform.forward * shootRange + randomVector;
-                    Vector3 direction = lastPoint - transform.position;
+                        Vector3 randomVector = new Vector3(Random.Range(-shootSpreadCoeff, +shootSpreadCoeff), 0, Random.Range(-shootSpreadCoeff, +shootSpreadCoeff));
+                        Vector3 lastPoint = transform.position + transform.forward * shootRange + randomVector;
+                        Vector3 direction = lastPoint - transform.position;
 
-                    rocket.direction = direction;
+                        rocket.direction = direction;
 
-                    // "пережаряжаемся" (задержка между выстрелами)
-                    StartCoroutine(Reloading(reloadingTime));
+                        // "пережаряжаемся" (задержка между выстрелами)
+                        StartCoroutine(Reloading(reloadingTime));
+                    }
+                }
+                else if (type == playerType.Melee)
+                {
+                    Vector3 fwd = transform.forward; fwd.y = 0;
+                    if (!reloading)
+                    {
+                        // вытаскиваем из пула и настраиваем прожектайл 
+                        Rocket rocket = main.rocketsPool.GetChild(0).GetComponent<Rocket>();
+                        rocket.transform.parent = null;
+                        rocket.transform.position = coll.bounds.center;
+                        rocket.startPoint = rocket.transform.position;
+                        rocket.maxRange = shootRange;
+                        rocket.MyShooterTag = tag;
+                        rocket.flying = true;
+                        rocket.speed = rocketSpeed;
+                        rocket.damage = rocketDamage;
+                        rocket.RocketTypeChanger(rocketType.Melee);
+
+                        rocket.direction = fwd;
+
+                        // "пережаряжаемся" (задержка между выстрелами)
+                        StartCoroutine(Reloading(reloadingTime));
+
+                        #region
+                        //if (Physics.Raycast(transform.position + Vector3.up * 1f, fwd, out hit, shootRange))
+                        //{
+                        //    if (hit.transform.tag == "Jail")
+                        //    {
+                        //        // вытаскиваем из пула и настраиваем прожектайл 
+                        //        Rocket rocket = main.rocketsPool.GetChild(0).GetComponent<Rocket>();
+                        //        rocket.transform.parent = null;
+                        //        rocket.transform.position = transform.position + 1.4f * Vector3.up;
+                        //        rocket.startPoint = rocket.transform.position;
+                        //        rocket.maxRange = shootRange;
+                        //        rocket.MyShooterTag = tag;
+                        //        rocket.flying = true;
+                        //        rocket.speed = rocketSpeed;
+                        //        rocket.damage = rocketDamage;
+                        //        rocket.RocketTypeChanger(rocketType.Melee);
+
+                        //        rocket.direction = fwd;
+
+                        //        // "пережаряжаемся" (задержка между выстрелами)
+                        //        StartCoroutine(Reloading(reloadingTime));
+                        //    }
+                        //}
+                        #endregion
+                    }
+                }
+                else if (type == playerType.Heal)
+                {
+                    if (!healReloading)
+                    {
+                        foreach (Player p in main.playersInParty)
+                        {
+                            p.curHealthPoint += healPointsRecoveryCount;
+                            if (p.curHealthPoint > p.maxHealthPoint)
+                            {
+                                curHealthPoint = maxHealthPoint;
+                            }
+                        }
+
+                        // "пережаряжаемся" (задержка между лечениями)
+                        StartCoroutine(HealReloading(healReloadingTime));
+                    }
+
+                    //int injuredPlayersCount = main.playersInParty.Select(x => x).Where(x => x.curHealthPoint != x.maxHealthPoint).Count();
+                    //foreach (Player p in main.playersInParty)
+                    //{
+                    //    p.curHealthPoint += healPointsRecoveryCount * Time.deltaTime / injuredPlayersCount;
+                    //    //p.curHealthPoint += healPointsRecoveryCount * Time.deltaTime;
+                    //    if (p.curHealthPoint > p.maxHealthPoint)
+                    //    {
+                    //        curHealthPoint = maxHealthPoint;
+                    //    }
+                    //}
                 }
             }
             else
             {
                 Vector3 fwd = transform.forward; fwd.y = 0;
                 Vector3 dir = Vector3.forward; dir.y = 0;
-                Vector3 newOffsetPos = main.player.transform.position + rndV3;
+                Vector3 newOffsetPos = Vector3.zero;
+                if (type == playerType.Melee) newOffsetPos = main.Party_M.position + rndV3;
+                else if (type == playerType.Range) newOffsetPos = main.Party_R.position + rndV3;
+                else if (type == playerType.Heal) newOffsetPos = main.Party_H.position + rndV3;
+
                 if ((transform.position - newOffsetPos).magnitude <= 0.2f)
                 {
                     inParty = true;
                     transform.rotation = Quaternion.identity;
-                    transform.SetParent(main.Party);
+
+                    if (type == playerType.Melee) transform.SetParent(main.Party_M);
+                    else if (type == playerType.Range) transform.SetParent(main.Party_R);
+                    else if (type == playerType.Heal) transform.SetParent(main.Party_H);
+
                     coll.enabled = true;
+                    main.playersInParty.Add(this);
+
+                    Transform hPanelp = Instantiate(main.healthPanelPrefab).transform;
+                    hPanelp.SetParent(main.healthPanelsPool);
+                    hPanelp.localScale = new Vector3(1, 1, 1);
+                    healthPanel = hPanelp;
+                    healthPanelFill = hPanelp.GetChild(0).GetComponent<Image>();
                 }
                 else
                 {
-                    transform.position = Vector3.Lerp(transform.position, newOffsetPos, Time.deltaTime * moveSpeed);
+                    transform.position = Vector3.Lerp(transform.position, newOffsetPos, Time.deltaTime * moveSpeed / 2f);
                     transform.rotation = Quaternion.LookRotation(Vector3.RotateTowards(fwd, dir, rotateSpeed * Time.deltaTime, 0));
                 }
             }
         }
         else
         {
-            if (transform.position.z > -35f && (main.player.transform.position - transform.position).magnitude <= shootRange)
+            if (transform.position.z > -35f && (main.Party.position - transform.position).magnitude <= 30f)
             {
                 if (!Physics.Raycast(transform.position + Vector3.up * 1f, Vector3.down, 2f, 1 << 9))
                 {
@@ -99,7 +229,7 @@ public class Player : MonoBehaviour
                     {
                         rndV3 = new Vector3(Random.Range(-1f, +1f), 0, Random.Range(-1f, +1f));
                         List<bool> array = new List<bool>();
-                        foreach (Player p in main.GetComponentsInChildren<Player>())
+                        foreach (Player p in main.playersInParty)
                         {
                             if ((p.transform.position - rndV3).magnitude < 0.6f) array.Add(false);
                             else array.Add(true);
@@ -117,5 +247,13 @@ public class Player : MonoBehaviour
         reloading = true;
         yield return new WaitForSeconds(reloadingTime);
         reloading = false;
+    }
+
+    // "перезарядка" лечения (задержка между лечениями)
+    IEnumerator HealReloading(float healReloadingTime)
+    {
+        healReloading = true;
+        yield return new WaitForSeconds(healReloadingTime);
+        healReloading = false;
     }
 }

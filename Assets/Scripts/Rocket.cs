@@ -3,6 +3,14 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
 
+
+public enum rocketType
+{
+    Bullet,
+    Bomb,
+    Melee
+}
+
 public class Rocket : MonoBehaviour
 {
     public float damage; // урон
@@ -17,6 +25,28 @@ public class Rocket : MonoBehaviour
 
     public Rigidbody rb;
     public Main main;
+
+    public void RocketTypeChanger(rocketType rT)
+    {
+        if (rT == rocketType.Bullet)
+        {
+            transform.GetChild(0).gameObject.SetActive(true);
+            transform.GetChild(1).gameObject.SetActive(false);
+            transform.GetChild(2).gameObject.SetActive(false);
+        }
+        else if(rT == rocketType.Bomb)
+        {
+            transform.GetChild(0).gameObject.SetActive(false);
+            transform.GetChild(1).gameObject.SetActive(true);
+            transform.GetChild(2).gameObject.SetActive(false);
+        }
+        else if (rT == rocketType.Melee)
+        {
+            transform.GetChild(0).gameObject.SetActive(false);
+            transform.GetChild(1).gameObject.SetActive(false);
+            transform.GetChild(2).gameObject.SetActive(true);
+        }
+    }
 
     void Update()
     {
@@ -57,9 +87,33 @@ public class Rocket : MonoBehaviour
         }
         else if (other.tag == "Player")
         {
-            if (other.tag == MyShooterTag)
+            if (other.tag != MyShooterTag)
             {
-                print("");
+                Player plr = other.GetComponent<Player>();
+                if (plr.inParty)
+                {
+                    plr.curHealthPoint -= damage;
+
+                    if (plr.curHealthPoint <= 0)
+                    {
+                        main.playersInParty.Remove(plr);
+                        Destroy(plr.healthPanel.gameObject);
+                        Destroy(plr.gameObject);
+                    }
+                }
+            }
+        }
+        else if (other.tag == "Enemy")
+        {
+            if (other.tag != MyShooterTag)
+            {
+                Enemy enm = other.GetComponent<Enemy>();
+                enm.curHealthPoint -= damage;
+
+                if (enm.curHealthPoint <= 0)
+                {
+                    Destroy(enm.gameObject);
+                }
             }
         }
 
