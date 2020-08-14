@@ -1,22 +1,28 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using TMPro;
 
 public class Jail : MonoBehaviour
 {
-    public float curHP;
-    public TextMesh textMesh;
+    [HideInInspector] public float curHP;
+    public float Bot, Top;
+    public TextMeshPro textMesh;
 
-    // Start is called before the first frame update
+    public Color bodyColor;
+    [HideInInspector] public MaterialPropertyBlock MPB;
+    [HideInInspector] public MeshRenderer mr;
+
+
     void Start()
     {
-        curHP = Mathf.RoundToInt(Random.Range(50, 150));
-        textMesh.text = curHP.ToString();
-    }
+        MPB = new MaterialPropertyBlock();
+        mr = GetComponent<MeshRenderer>();
+        mr.GetPropertyBlock(MPB);
+        MPB.SetColor("_Color", bodyColor);
+        mr.SetPropertyBlock(MPB);
 
-    // Update is called once per frame
-    void Update()
-    {
-        
+        curHP = Mathf.RoundToInt(Random.Range(Bot, Top));
+        textMesh.text = curHP.ToString();
     }
 }

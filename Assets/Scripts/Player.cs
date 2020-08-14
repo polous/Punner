@@ -14,8 +14,7 @@ public enum playerType
 
 public class Player : MonoBehaviour
 {
-    public playerType type; // тип игрока
-    public float moveSpeed; // базовая скорость перемещения игрока
+    public playerType type; // тип игрока    
     public float shootRange; // дистанция стрельбы
     public float shootSpreadCoeff;
     public float rocketDamage; // текущий урон от оружия
@@ -32,6 +31,7 @@ public class Player : MonoBehaviour
     public float healPointsRecoveryCount; // количество хп, восстанавливаемое хиллером
     public float healReloadingTime; // время перезарядки лечилки
     [SerializeField] bool healReloading;
+    public Transform myHealingEffect;
 
     public bool inJail;
     public bool inParty;
@@ -46,6 +46,8 @@ public class Player : MonoBehaviour
     [HideInInspector] public MaterialPropertyBlock MPB;
     [HideInInspector] public MeshRenderer mr;
 
+    Vector3 newOffsetPos = Vector3.zero;
+
 
     void Start()
     {
@@ -59,6 +61,8 @@ public class Player : MonoBehaviour
         if (inJail) coll.enabled = false;
 
         curHealthPoint = maxHealthPoint;
+
+        newOffsetPos = transform.localPosition;
     }
 
 
@@ -75,8 +79,23 @@ public class Player : MonoBehaviour
         {
             if (inParty)
             {
+                // случайные блуждания в пати относительно классовoго центра
+                if ((transform.localPosition - newOffsetPos).magnitude <= 0.1f)
+                {
+                    rndV3 = new Vector3(Random.Range(-main.maxOffsetInPaty_X, +main.maxOffsetInPaty_X), 0, Random.Range(-main.maxOffsetInPaty_Z, +main.maxOffsetInPaty_Z));
+                    if (type == playerType.Melee) newOffsetPos = main.Party_M.localPosition + rndV3;
+                    else if (type == playerType.Range) newOffsetPos = main.Party_R.localPosition + rndV3;
+                    else if (type == playerType.Heal) newOffsetPos = main.Party_H.localPosition + rndV3;
+                }
+                else
+                {
+                    transform.localPosition = Vector3.MoveTowards(transform.localPosition, newOffsetPos, Time.deltaTime * main.playerMoveSpeedInParty);
+                }
+
+                // поведение в зависимости от класса игрока
                 if (type == playerType.Range)
                 {
+                    // стрелок стреляет
                     Vector3 fwd = transform.forward; fwd.y = 0;
                     if (!reloading)
                     {
@@ -104,6 +123,7 @@ public class Player : MonoBehaviour
                 }
                 else if (type == playerType.Melee)
                 {
+                    // милишник тоже стреляет, но на короткой дистанции
                     Vector3 fwd = transform.forward; fwd.y = 0;
                     if (!reloading)
                     {
@@ -152,6 +172,7 @@ public class Player : MonoBehaviour
                 }
                 else if (type == playerType.Heal)
                 {
+                    // хиллер лечит всех в пати
                     if (!healReloading)
                     {
                         foreach (Player p in main.playersInParty)
@@ -159,31 +180,21 @@ public class Player : MonoBehaviour
                             p.curHealthPoint += healPointsRecoveryCount;
                             if (p.curHealthPoint > p.maxHealthPoint)
                             {
-                                curHealthPoint = maxHealthPoint;
+                                p.curHealthPoint = p.maxHealthPoint;
                             }
                         }
 
                         // "пережаряжаемся" (задержка между лечениями)
                         StartCoroutine(HealReloading(healReloadingTime));
                     }
-
-                    //int injuredPlayersCount = main.playersInParty.Select(x => x).Where(x => x.curHealthPoint != x.maxHealthPoint).Count();
-                    //foreach (Player p in main.playersInParty)
-                    //{
-                    //    p.curHealthPoint += healPointsRecoveryCount * Time.deltaTime / injuredPlayersCount;
-                    //    //p.curHealthPoint += healPointsRecoveryCount * Time.deltaTime;
-                    //    if (p.curHealthPoint > p.maxHealthPoint)
-                    //    {
-                    //        curHealthPoint = maxHealthPoint;
-                    //    }
-                    //}
                 }
             }
+            // если не в тюрьме, но еще и не в пати, то бежим в пати
             else
             {
                 Vector3 fwd = transform.forward; fwd.y = 0;
                 Vector3 dir = Vector3.forward; dir.y = 0;
-                Vector3 newOffsetPos = Vector3.zero;
+
                 if (type == playerType.Melee) newOffsetPos = main.Party_M.position + rndV3;
                 else if (type == playerType.Range) newOffsetPos = main.Party_R.position + rndV3;
                 else if (type == playerType.Heal) newOffsetPos = main.Party_H.position + rndV3;
@@ -205,14 +216,25 @@ public class Player : MonoBehaviour
                     hPanelp.localScale = new Vector3(1, 1, 1);
                     healthPanel = hPanelp;
                     healthPanelFill = hPanelp.GetChild(0).GetComponent<Image>();
+
+                    newOffsetPos = transform.localPosition;
+
+                    if (type == playerType.Heal)
+                    {
+                        Transform healingEffect = main.healingEffectsPool.GetChild(0);
+                        healingEffect.SetParent(transform);
+                        healingEffect.position = transform.position;
+                        myHealingEffect = healingEffect;
+                    }
                 }
                 else
                 {
-                    transform.position = Vector3.Lerp(transform.position, newOffsetPos, Time.deltaTime * moveSpeed / 2f);
+                    transform.position = Vector3.Lerp(transform.position, newOffsetPos, Time.deltaTime * main.playerMoveSpeedToParty);
                     transform.rotation = Quaternion.LookRotation(Vector3.RotateTowards(fwd, dir, rotateSpeed * Time.deltaTime, 0));
                 }
             }
         }
+        // если в тюрьме, то ждем освобождения
         else
         {
             if (transform.position.z > -35f && (main.Party.position - transform.position).magnitude <= 30f)
@@ -223,19 +245,7 @@ public class Player : MonoBehaviour
                     transform.position = new Vector3(transform.position.x, 0, transform.position.z);
                     transform.SetParent(null);
 
-                    //rndV3 = new Vector3(Random.Range(-1f, +1f), 0, Random.Range(-1f, +1f));
-
-                    for (int i = 0; i < 100; i++)
-                    {
-                        rndV3 = new Vector3(Random.Range(-1f, +1f), 0, Random.Range(-1f, +1f));
-                        List<bool> array = new List<bool>();
-                        foreach (Player p in main.playersInParty)
-                        {
-                            if ((p.transform.position - rndV3).magnitude < 0.6f) array.Add(false);
-                            else array.Add(true);
-                        }
-                        if (array.All(x => x)) break;
-                    }
+                    rndV3 = new Vector3(Random.Range(-main.maxOffsetInPaty_X, +main.maxOffsetInPaty_X), 0, Random.Range(-main.maxOffsetInPaty_Z, +main.maxOffsetInPaty_Z));
                 }
             }
         }

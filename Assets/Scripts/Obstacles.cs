@@ -14,13 +14,9 @@ public class Obstacles : MonoBehaviour
             if (plr.inParty)
             {
                 plr.curHealthPoint -= damage;
+                plr.main.BodyHitReaction(plr.mr, plr.MPB, plr.bodyColor);
 
-                if (plr.curHealthPoint <= 0)
-                {
-                    plr.main.playersInParty.Remove(plr);
-                    Destroy(plr.healthPanel.gameObject);
-                    Destroy(plr.gameObject);
-                }
+                plr.main.PlayerDie(plr);
             }
         }
     }

@@ -79,6 +79,7 @@ public class Rocket : MonoBehaviour
             Jail jail = other.GetComponent<Jail>();
             jail.curHP -= damage;
             jail.textMesh.text = jail.curHP.ToString();
+            main.BodyHitReaction(jail.mr, jail.MPB, jail.bodyColor);
 
             if (jail.curHP <= 0)
             {
@@ -93,13 +94,9 @@ public class Rocket : MonoBehaviour
                 if (plr.inParty)
                 {
                     plr.curHealthPoint -= damage;
+                    main.BodyHitReaction(plr.mr, plr.MPB, plr.bodyColor);
 
-                    if (plr.curHealthPoint <= 0)
-                    {
-                        main.playersInParty.Remove(plr);
-                        Destroy(plr.healthPanel.gameObject);
-                        Destroy(plr.gameObject);
-                    }
+                    main.PlayerDie(plr);
                 }
             }
         }
@@ -109,11 +106,9 @@ public class Rocket : MonoBehaviour
             {
                 Enemy enm = other.GetComponent<Enemy>();
                 enm.curHealthPoint -= damage;
+                main.BodyHitReaction(enm.mr, enm.MPB, enm.bodyColor);
 
-                if (enm.curHealthPoint <= 0)
-                {
-                    Destroy(enm.gameObject);
-                }
+                main.EnemyDie(enm);
             }
         }
 

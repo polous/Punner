@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.UI;
+using UnityEngine.SceneManagement;
 
 public class Main : MonoBehaviour
 {
@@ -16,14 +17,28 @@ public class Main : MonoBehaviour
     public Transform Party_M, Party_R, Party_H;
     public List<Player> playersInParty = new List<Player>();
 
-    public float worldMoveSpeed;
+    public float worldMoveSpeed; // вертикальная скорость смещения мира
+    public float partyMoveSpeed; // горизонатльная скорость перемещения пати
+    public float playerMoveSpeedToParty; // базовая скорость перемещения игроков в пати при освобождении
+    public float playerMoveSpeedInParty; // базовая скорость перемещения игроков в пати для случайного блуждания
 
-    Vector3 newPoint;
+    Vector3 newPartyPoint;
+    public float maxOffsetInPaty_X, maxOffsetInPaty_Z;
 
     public GameObject rocketPrefab; // префаб ракеты
     public Transform rocketsPool; // пул прожектайлов
     public GameObject healthPanelPrefab; // префаб UI панели здоровья
     public Transform healthPanelsPool; // пул UI панелей здоровья
+
+    public GameObject healingEffectPrefab; // префаб эффектов лечения
+    public Transform healingEffectsPool; // пул эффектов лечения
+    public GameObject deathEffectPrefab; // префаб эффектов смерти
+    public Transform deathEffectsPool; // пул эффектов смерти
+
+    public Text messagePanel;
+    public GameObject repeatButton;
+
+    public float globalTimer;
 
     void Awake()
     {
@@ -34,10 +49,28 @@ public class Main : MonoBehaviour
             rocket.transform.SetParent(rocketsPool);
             rocket.GetComponent<Rocket>().main = this;
         }
+
+        // заполняем пул эффектов смерти
+        for (int i = 0; i < 30; i++)
+        {
+            GameObject DE = Instantiate(deathEffectPrefab) as GameObject;
+            DE.transform.SetParent(deathEffectsPool);
+        }
+
+        // заполняем пул эффектов лечения
+        for (int i = 0; i < 30; i++)
+        {
+            GameObject HE = Instantiate(healingEffectPrefab) as GameObject;
+            HE.transform.SetParent(healingEffectsPool);
+        }
     }
 
     void Start()
     {
+        messagePanel.text = "";
+        globalTimer = 0;
+        repeatButton.SetActive(false);
+
         foreach (Player p in Party.GetComponentsInChildren<Player>())
         {
             playersInParty.Add(p);
@@ -68,21 +101,24 @@ public class Main : MonoBehaviour
 
         if (Input.GetMouseButton(0))
         {
-            Ray ray = Camera.main.ScreenPointToRay(Input.mousePosition);
-            RaycastHit hit;
-
-            if (Physics.Raycast(ray, out hit, 1 << 8))
+            if (!repeatButton.activeSelf)
             {
-                xPos = hit.point.x;
-                if (Mathf.Abs(xPos) > xLimit)
+                Ray ray = Camera.main.ScreenPointToRay(Input.mousePosition);
+                RaycastHit hit;
+
+                if (Physics.Raycast(ray, out hit, 1 << 8))
                 {
-                    if (xPos > 0) xPos = xLimit;
-                    if (xPos < 0) xPos = -xLimit;
+                    xPos = hit.point.x;
+                    if (Mathf.Abs(xPos) > xLimit)
+                    {
+                        if (xPos > 0) xPos = xLimit;
+                        if (xPos < 0) xPos = -xLimit;
+                    }
+                    newPartyPoint = new Vector3(xPos, Party.position.y, Party.position.z);
+
+
+                    Party.position = Vector3.Slerp(Party.position, newPartyPoint, Time.deltaTime * partyMoveSpeed);
                 }
-                newPoint = new Vector3(xPos, Party.position.y, Party.position.z);
-
-
-                Party.position = Vector3.Lerp(Party.position, newPoint, Time.deltaTime * player.moveSpeed);
             }
         }
     }
@@ -96,6 +132,110 @@ public class Main : MonoBehaviour
     private void LateUpdate()
     {
         Level.Translate(Vector3.back * Time.deltaTime * worldMoveSpeed, Space.World);
+
+        if (player != null)
+        {
+            globalTimer += Time.deltaTime;
+        }
+    }
+
+
+    public void BodyHitReaction(MeshRenderer mr, MaterialPropertyBlock MPB, Color color)
+    {
+        StartCoroutine(ChangeBodyColor(mr, MPB, color));
+    }
+
+    // меняем цвет тушки
+    IEnumerator ChangeBodyColor(MeshRenderer mr, MaterialPropertyBlock MPB, Color color)
+    {
+        mr.GetPropertyBlock(MPB);
+        MPB.SetColor("_Color", Color.red);
+        mr.SetPropertyBlock(MPB);
+
+        yield return new WaitForSeconds(0.1f);
+
+        if (mr != null)
+        {
+            mr.GetPropertyBlock(MPB);
+            MPB.SetColor("_Color", color);
+            mr.SetPropertyBlock(MPB);
+        }
+    }
+
+
+    public void ResetCurrentLevel()
+    {
+        StartCoroutine(resetCurrentLevel());
+    }
+
+    IEnumerator resetCurrentLevel()
+    {
+        int curSceneIndex = SceneManager.GetActiveScene().buildIndex;
+        if (curSceneIndex == 0)
+        {
+            yield return null;
+            SceneManager.LoadScene(curSceneIndex);
+        }
+    }
+
+
+    public void PlayerDie(Player p)
+    {
+        StartCoroutine(PlayerDeath(p));
+    }
+
+    // убиваем игрока
+    IEnumerator PlayerDeath(Player p)
+    {
+        if (p.curHealthPoint <= 0)
+        {
+            if (p.type == playerType.Heal)
+            {
+                p.myHealingEffect.SetParent(healingEffectsPool);
+            }
+
+            playersInParty.Remove(p);
+            Destroy(p.healthPanel.gameObject);
+            Destroy(p.gameObject);
+
+            Transform deathEffect = deathEffectsPool.GetChild(0);
+            deathEffect.SetParent(Level);
+            deathEffect.position = p.transform.position;
+
+            yield return new WaitForSeconds(1);
+
+            deathEffect.SetParent(deathEffectsPool);
+
+            if (playersInParty.Count == 0)
+            {
+                worldMoveSpeed = 0;
+                messagePanel.gameObject.SetActive(true);
+                messagePanel.text = "Ты проиграл!\nСоберись, тряпка!";
+                repeatButton.SetActive(true);
+            }
+        }
+    }
+
+    public void EnemyDie(Enemy e)
+    {
+        StartCoroutine(EnemyDeath(e));
+    }
+
+    // убиваем врага
+    IEnumerator EnemyDeath(Enemy e)
+    {
+        if (e.curHealthPoint <= 0)
+        {
+            Destroy(e.gameObject);
+
+            Transform deathEffect = deathEffectsPool.GetChild(0);
+            deathEffect.SetParent(Level);
+            deathEffect.position = e.transform.position;
+
+            yield return new WaitForSeconds(1);
+
+            deathEffect.SetParent(deathEffectsPool);
+        }
     }
 
 }

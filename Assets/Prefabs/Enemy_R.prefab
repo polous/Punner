@@ -60,11 +60,11 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   shootRange: 40
-  shootSpreadCoeff: 0
-  rocketDamage: 20
-  rocketSpeed: 15
+  shootSpreadCoeff: 2
+  rocketDamage: 25
+  rocketSpeed: 10
   reloadingTime: 2
-  maxHealthPoint: 80
+  maxHealthPoint: 15
   curHealthPoint: 0
   main: {fileID: 0}
   coll: {fileID: 4271476569983862472}

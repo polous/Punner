@@ -46,10 +46,9 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   type: 1
-  moveSpeed: 4
   shootRange: 4
   shootSpreadCoeff: 0
-  rocketDamage: 50
+  rocketDamage: 5
   rocketSpeed: 20
   reloadingTime: 0.3
   rotateSpeed: 5
@@ -57,7 +56,10 @@ MonoBehaviour:
   curHealthPoint: 0
   healthPanel: {fileID: 0}
   healthPanelFill: {fileID: 0}
-  healPartyCountPerSec: 0
+  healPointsRecoveryCount: 0
+  healReloadingTime: 0
+  healReloading: 0
+  myHealingEffect: {fileID: 0}
   inJail: 1
   inParty: 0
   main: {fileID: 0}
