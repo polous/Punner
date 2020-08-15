@@ -4,14 +4,15 @@ using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.UI;
 using UnityEngine.SceneManagement;
+using System.Linq;
 
 public class Main : MonoBehaviour
 {
-    public Transform Level;
+    [HideInInspector] public Transform Level;
     int worldSize = 80;
-    public float xPos;
+    [HideInInspector] public float xPos;
     public float xLimit;
-    public Player player;
+    public float xOffSet;
 
     public Transform Party;
     public Transform Party_M, Party_R, Party_H;
@@ -23,7 +24,7 @@ public class Main : MonoBehaviour
     public float playerMoveSpeedInParty; // базовая скорость перемещения игроков в пати для случайного блуждания
 
     Vector3 newPartyPoint;
-    public float maxOffsetInPaty_X, maxOffsetInPaty_Z;
+    public float maxOffsetInPaty_X, maxOffsetInPaty_Z; // случайное отклонение относительно классового центра пати для случайных блужданий (по Х и по Z)
 
     public GameObject rocketPrefab; // префаб ракеты
     public Transform rocketsPool; // пул прожектайлов
@@ -38,7 +39,10 @@ public class Main : MonoBehaviour
     public Text messagePanel;
     public GameObject repeatButton;
 
-    public float globalTimer;
+    [HideInInspector] public float globalTimer;
+
+    public bool shootingOnlyInMove;
+    public bool inMove;
 
     void Awake()
     {
@@ -98,9 +102,10 @@ public class Main : MonoBehaviour
         //        print("");
         //    }
         //}
-
+        if(shootingOnlyInMove) inMove = false;
         if (Input.GetMouseButton(0))
         {
+            inMove = true;
             if (!repeatButton.activeSelf)
             {
                 Ray ray = Camera.main.ScreenPointToRay(Input.mousePosition);
@@ -109,11 +114,14 @@ public class Main : MonoBehaviour
                 if (Physics.Raycast(ray, out hit, 1 << 8))
                 {
                     xPos = hit.point.x;
+                    xPos += xPos * xOffSet; // ввожу оффсет для более раннего позиционирования на границе дороги
+
                     if (Mathf.Abs(xPos) > xLimit)
                     {
                         if (xPos > 0) xPos = xLimit;
                         if (xPos < 0) xPos = -xLimit;
                     }
+
                     newPartyPoint = new Vector3(xPos, Party.position.y, Party.position.z);
 
 
@@ -133,7 +141,7 @@ public class Main : MonoBehaviour
     {
         Level.Translate(Vector3.back * Time.deltaTime * worldMoveSpeed, Space.World);
 
-        if (player != null)
+        if (!repeatButton.activeSelf)
         {
             globalTimer += Time.deltaTime;
         }
@@ -189,7 +197,11 @@ public class Main : MonoBehaviour
     {
         if (p.curHealthPoint <= 0)
         {
-            if (p.type == playerType.Heal)
+            //if (p.type == playerType.Heal)
+            //{
+            //    p.myHealingEffect.SetParent(healingEffectsPool);
+            //}
+            if (p.myHealingEffect != null)
             {
                 p.myHealingEffect.SetParent(healingEffectsPool);
             }
@@ -208,10 +220,16 @@ public class Main : MonoBehaviour
 
             if (playersInParty.Count == 0)
             {
-                worldMoveSpeed = 0;
-                messagePanel.gameObject.SetActive(true);
-                messagePanel.text = "Ты проиграл!\nСоберись, тряпка!";
-                repeatButton.SetActive(true);
+                // находим всех игроков вне пати, но уже и не в тюрьме
+                List<Player> freePlrs = Level.GetComponentsInChildren<Player>().Select(x => x).Where(x => !x.inJail).ToList();
+                // если освобожденных игроков нет, то конец игры
+                if (freePlrs.Count == 0)
+                {
+                    worldMoveSpeed = 0;
+                    messagePanel.gameObject.SetActive(true);
+                    messagePanel.text = "Ты проиграл!\nСоберись, тряпка!";
+                    repeatButton.SetActive(true);
+                }
             }
         }
     }
@@ -236,6 +254,19 @@ public class Main : MonoBehaviour
 
             deathEffect.SetParent(deathEffectsPool);
         }
+    }
+
+    public void HealingEffectReturnToPool(Transform healingEffect)
+    {
+        StartCoroutine(healingEffectReturnToPool(healingEffect));
+    }
+
+    // убиваем врага
+    IEnumerator healingEffectReturnToPool(Transform healingEffect)
+    {
+        yield return new WaitForSeconds(1);
+
+        healingEffect.SetParent(healingEffectsPool);
     }
 
 }

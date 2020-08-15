@@ -56,8 +56,8 @@ MonoBehaviour:
   curHealthPoint: 0
   healthPanel: {fileID: 0}
   healthPanelFill: {fileID: 0}
-  healPointsRecoveryCount: 1.5
-  healReloadingTime: 1
+  healPointsRecoveryCount: 30
+  healReloadingTime: 3
   healReloading: 0
   myHealingEffect: {fileID: 0}
   inJail: 1

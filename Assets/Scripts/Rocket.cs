@@ -23,8 +23,12 @@ public class Rocket : MonoBehaviour
 
     public float spreadCoeff; // разброс относительно точного направления на цель
 
+    public bool flyThrough;
+
     public Rigidbody rb;
     public Main main;
+
+    public MeshRenderer mr;
 
     public void RocketTypeChanger(rocketType rT)
     {
@@ -46,6 +50,16 @@ public class Rocket : MonoBehaviour
             transform.GetChild(1).gameObject.SetActive(false);
             transform.GetChild(2).gameObject.SetActive(true);
         }
+    }
+
+
+    public void RocketParamsChanger(MaterialPropertyBlock MPB, Color bodyColor, float bodySize)
+    {
+        mr.GetPropertyBlock(MPB);
+        MPB.SetColor("_Color", bodyColor);
+        mr.SetPropertyBlock(MPB);
+
+        mr.transform.localScale = Vector3.one * bodySize;
     }
 
     void Update()
@@ -76,19 +90,22 @@ public class Rocket : MonoBehaviour
             transform.SetParent(main.rocketsPool);
             flying = false;
 
-            Jail jail = other.GetComponent<Jail>();
-            jail.curHP -= damage;
-            jail.textMesh.text = jail.curHP.ToString();
-            main.BodyHitReaction(jail.mr, jail.MPB, jail.bodyColor);
-
-            if (jail.curHP <= 0)
+            if (MyShooterTag != "Enemy")
             {
-                Destroy(jail.gameObject);
+                Jail jail = other.GetComponent<Jail>();
+                jail.curHP -= damage;
+                jail.textMesh.text = jail.curHP.ToString();
+                main.BodyHitReaction(jail.mr, jail.MPB, jail.bodyColor);
+
+                if (jail.curHP <= 0)
+                {
+                    Destroy(jail.gameObject);
+                }
             }
         }
         else if (other.tag == "Player")
         {
-            if (other.tag != MyShooterTag)
+            if (MyShooterTag != "Player")
             {
                 Player plr = other.GetComponent<Player>();
                 if (plr.inParty)
@@ -97,18 +114,27 @@ public class Rocket : MonoBehaviour
                     main.BodyHitReaction(plr.mr, plr.MPB, plr.bodyColor);
 
                     main.PlayerDie(plr);
+
+                    if (!flyThrough)
+                    {
+                        transform.SetParent(main.rocketsPool);
+                        flying = false;
+                    }
                 }
             }
         }
         else if (other.tag == "Enemy")
         {
-            if (other.tag != MyShooterTag)
+            if (MyShooterTag != "Enemy")
             {
                 Enemy enm = other.GetComponent<Enemy>();
                 enm.curHealthPoint -= damage;
                 main.BodyHitReaction(enm.mr, enm.MPB, enm.bodyColor);
 
                 main.EnemyDie(enm);
+
+                transform.SetParent(main.rocketsPool);
+                flying = false;
             }
         }
 

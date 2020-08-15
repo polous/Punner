@@ -3091,17 +3091,6 @@ Transform:
   m_CorrespondingSourceObject: {fileID: 2495567037161592695, guid: e6ef461900ed65b4fb134e08e2eca202, type: 3}
   m_PrefabInstance: {fileID: 887514739}
   m_PrefabAsset: {fileID: 0}
---- !u!114 &913945376 stripped
-MonoBehaviour:
-  m_CorrespondingSourceObject: {fileID: 8216961823442154976, guid: 815198c6deee0b349a15811bb39a5be9, type: 3}
-  m_PrefabInstance: {fileID: 7661335992965220378}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 0}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 46e343512321a394fba1a0c61d11ca96, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
 --- !u!1 &917862280
 GameObject:
   m_ObjectHideFlags: 0
@@ -5515,7 +5504,7 @@ MonoBehaviour:
   Level: {fileID: 706523100}
   xPos: 0
   xLimit: 4
-  player: {fileID: 913945376}
+  xOffSet: 0.2
   Party: {fileID: 1156597252}
   Party_M: {fileID: 1142381080}
   Party_R: {fileID: 1660676306}
@@ -5523,7 +5512,7 @@ MonoBehaviour:
   playersInParty: []
   worldMoveSpeed: 8
   partyMoveSpeed: 10
-  playerMoveSpeedToParty: 2
+  playerMoveSpeedToParty: 40
   playerMoveSpeedInParty: 0.5
   maxOffsetInPaty_X: 0.8
   maxOffsetInPaty_Z: 0.5
@@ -5538,6 +5527,8 @@ MonoBehaviour:
   messagePanel: {fileID: 1897998224}
   repeatButton: {fileID: 2079798931}
   globalTimer: 0
+  shootingOnlyInMove: 0
+  inMove: 0
 --- !u!4 &1886906476
 Transform:
   m_ObjectHideFlags: 0

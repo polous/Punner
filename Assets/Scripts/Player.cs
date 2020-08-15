@@ -45,6 +45,8 @@ public class Player : MonoBehaviour
     public Color bodyColor;
     [HideInInspector] public MaterialPropertyBlock MPB;
     [HideInInspector] public MeshRenderer mr;
+    public Color rocketColor;
+    public float rocketSize;
 
     Vector3 newOffsetPos = Vector3.zero;
 
@@ -95,6 +97,7 @@ public class Player : MonoBehaviour
                 // поведение в зависимости от класса игрока
                 if (type == playerType.Range)
                 {
+                    if (!main.inMove) return;
                     // стрелок стреляет
                     Vector3 fwd = transform.forward; fwd.y = 0;
                     if (!reloading)
@@ -109,7 +112,8 @@ public class Player : MonoBehaviour
                         rocket.flying = true;
                         rocket.speed = rocketSpeed;
                         rocket.damage = rocketDamage;
-                        rocket.RocketTypeChanger(rocketType.Bullet);
+                        //rocket.RocketTypeChanger(rocketType.Bullet);
+                        rocket.RocketParamsChanger(MPB, rocketColor, rocketSize);
 
                         Vector3 randomVector = new Vector3(Random.Range(-shootSpreadCoeff, +shootSpreadCoeff), 0, Random.Range(-shootSpreadCoeff, +shootSpreadCoeff));
                         Vector3 lastPoint = transform.position + transform.forward * shootRange + randomVector;
@@ -123,6 +127,7 @@ public class Player : MonoBehaviour
                 }
                 else if (type == playerType.Melee)
                 {
+                    if (!main.inMove) return;
                     // милишник тоже стреляет, но на короткой дистанции
                     Vector3 fwd = transform.forward; fwd.y = 0;
                     if (!reloading)
@@ -137,37 +142,13 @@ public class Player : MonoBehaviour
                         rocket.flying = true;
                         rocket.speed = rocketSpeed;
                         rocket.damage = rocketDamage;
-                        rocket.RocketTypeChanger(rocketType.Melee);
+                        //rocket.RocketTypeChanger(rocketType.Bullet);
+                        rocket.RocketParamsChanger(MPB, rocketColor, rocketSize);
 
                         rocket.direction = fwd;
 
                         // "пережаряжаемся" (задержка между выстрелами)
                         StartCoroutine(Reloading(reloadingTime));
-
-                        #region
-                        //if (Physics.Raycast(transform.position + Vector3.up * 1f, fwd, out hit, shootRange))
-                        //{
-                        //    if (hit.transform.tag == "Jail")
-                        //    {
-                        //        // вытаскиваем из пула и настраиваем прожектайл 
-                        //        Rocket rocket = main.rocketsPool.GetChild(0).GetComponent<Rocket>();
-                        //        rocket.transform.parent = null;
-                        //        rocket.transform.position = transform.position + 1.4f * Vector3.up;
-                        //        rocket.startPoint = rocket.transform.position;
-                        //        rocket.maxRange = shootRange;
-                        //        rocket.MyShooterTag = tag;
-                        //        rocket.flying = true;
-                        //        rocket.speed = rocketSpeed;
-                        //        rocket.damage = rocketDamage;
-                        //        rocket.RocketTypeChanger(rocketType.Melee);
-
-                        //        rocket.direction = fwd;
-
-                        //        // "пережаряжаемся" (задержка между выстрелами)
-                        //        StartCoroutine(Reloading(reloadingTime));
-                        //    }
-                        //}
-                        #endregion
                     }
                 }
                 else if (type == playerType.Heal)
@@ -175,13 +156,32 @@ public class Player : MonoBehaviour
                     // хиллер лечит всех в пати
                     if (!healReloading)
                     {
-                        foreach (Player p in main.playersInParty)
+                        ////лечим всех
+                        //foreach (Player p in main.playersInParty)
+                        //{                            
+                        //    p.curHealthPoint += healPointsRecoveryCount;
+                        //    if (p.curHealthPoint > p.maxHealthPoint)
+                        //    {
+                        //        p.curHealthPoint = p.maxHealthPoint;
+                        //    }
+                        //}
+
+                        // лечим случайного раненного
+                        List<Player> injuredPlayers = main.playersInParty.Select(x => x).Where(x => x.curHealthPoint < x.maxHealthPoint).ToList();
+                        if (injuredPlayers.Count != 0)
                         {
-                            p.curHealthPoint += healPointsRecoveryCount;
-                            if (p.curHealthPoint > p.maxHealthPoint)
+                            int rndIndex = Random.Range(0, injuredPlayers.Count);
+                            injuredPlayers[rndIndex].curHealthPoint += healPointsRecoveryCount;
+                            if (injuredPlayers[rndIndex].curHealthPoint > injuredPlayers[rndIndex].maxHealthPoint)
                             {
-                                p.curHealthPoint = p.maxHealthPoint;
+                                injuredPlayers[rndIndex].curHealthPoint = injuredPlayers[rndIndex].maxHealthPoint;
                             }
+
+                            Transform healingEffect = main.healingEffectsPool.GetChild(0);
+                            healingEffect.SetParent(injuredPlayers[rndIndex].transform);
+                            healingEffect.position = injuredPlayers[rndIndex].transform.position;
+                            injuredPlayers[rndIndex].myHealingEffect = healingEffect;
+                            main.HealingEffectReturnToPool(healingEffect);
                         }
 
                         // "пережаряжаемся" (задержка между лечениями)
@@ -219,17 +219,17 @@ public class Player : MonoBehaviour
 
                     newOffsetPos = transform.localPosition;
 
-                    if (type == playerType.Heal)
-                    {
-                        Transform healingEffect = main.healingEffectsPool.GetChild(0);
-                        healingEffect.SetParent(transform);
-                        healingEffect.position = transform.position;
-                        myHealingEffect = healingEffect;
-                    }
+                    //if (type == playerType.Heal)
+                    //{
+                    //    Transform healingEffect = main.healingEffectsPool.GetChild(0);
+                    //    healingEffect.SetParent(transform);
+                    //    healingEffect.position = transform.position;
+                    //    myHealingEffect = healingEffect;
+                    //}
                 }
                 else
                 {
-                    transform.position = Vector3.Lerp(transform.position, newOffsetPos, Time.deltaTime * main.playerMoveSpeedToParty);
+                    transform.position = Vector3.MoveTowards(transform.position, newOffsetPos, Time.deltaTime * main.playerMoveSpeedToParty);
                     transform.rotation = Quaternion.LookRotation(Vector3.RotateTowards(fwd, dir, rotateSpeed * Time.deltaTime, 0));
                 }
             }

@@ -24,6 +24,9 @@ public class Enemy : MonoBehaviour
     public Color bodyColor;
     [HideInInspector] public MaterialPropertyBlock MPB;
     [HideInInspector] public MeshRenderer mr;
+    public Color rocketColor;
+    public float rocketSize;
+    public bool rocketFlyingThrough;
 
 
     void Start()
@@ -46,7 +49,6 @@ public class Enemy : MonoBehaviour
 
         if (transform.position.z > -35f && (main.Party.position - transform.position).magnitude <= 30f)
         {
-            Vector3 fwd = transform.forward; fwd.y = 0;
             if (!reloading)
             {
                 // вытаскиваем из пула и настраиваем прожектайл 
@@ -59,7 +61,9 @@ public class Enemy : MonoBehaviour
                 rocket.flying = true;
                 rocket.speed = rocketSpeed;
                 rocket.damage = rocketDamage;
-                rocket.RocketTypeChanger(rocketType.Bomb);
+                //rocket.RocketTypeChanger(rocketType.Bomb);
+                rocket.RocketParamsChanger(MPB, rocketColor, rocketSize);
+                rocket.flyThrough = rocketFlyingThrough;
 
                 Vector3 randomVector = new Vector3(Random.Range(-shootSpreadCoeff, +shootSpreadCoeff), 0, Random.Range(-shootSpreadCoeff, +shootSpreadCoeff));
                 Vector3 lastPoint = transform.position + transform.forward * shootRange + randomVector;

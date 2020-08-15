@@ -66,6 +66,8 @@ MonoBehaviour:
   coll: {fileID: 4161790574753120986}
   bodyColor: {r: 0.46682093, g: 0.60366684, b: 0.8773585, a: 1}
   mr: {fileID: 0}
+  rocketColor: {r: 0.3490566, g: 0.15176372, b: 0, a: 1}
+  rocketSize: 0.3
 --- !u!136 &4161790574753120986
 CapsuleCollider:
   m_ObjectHideFlags: 0
