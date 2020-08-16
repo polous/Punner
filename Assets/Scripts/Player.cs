@@ -237,7 +237,7 @@ public class Player : MonoBehaviour
         // если в тюрьме, то ждем освобождения
         else
         {
-            if (transform.position.z > -35f && (main.Party.position - transform.position).magnitude <= 30f)
+            if (transform.position.z > -35f && (main.Party.position - transform.position).magnitude <= 40f)
             {
                 if (!Physics.Raycast(transform.position + Vector3.up * 1f, Vector3.down, 2f, 1 << 9))
                 {

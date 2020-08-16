@@ -28,6 +28,11 @@ public class Enemy : MonoBehaviour
     public float rocketSize;
     public bool rocketFlyingThrough;
 
+    public float speed;
+    public float distance;
+    public movingDirection direction;
+    Vector3 curDir;
+    Vector3 startPos;
 
     void Start()
     {
@@ -40,6 +45,12 @@ public class Enemy : MonoBehaviour
         main = FindObjectOfType<Main>();
 
         curHealthPoint = maxHealthPoint;
+
+        startPos = transform.localPosition;
+
+        if (direction == movingDirection.Left) curDir = Vector3.left;
+        else if (direction == movingDirection.Right) curDir = Vector3.right;
+        else if (direction == movingDirection.Down) curDir = Vector3.back;
     }
 
 
@@ -47,32 +58,50 @@ public class Enemy : MonoBehaviour
     {
         if (main == null) return;
 
-        if (transform.position.z > -35f && (main.Party.position - transform.position).magnitude <= 30f)
+        if (transform.position.z > -35f && (main.Party.position - transform.position).magnitude <= 40f)
         {
-            if (!reloading)
+            // движение врага
+            if (speed > 0)
             {
-                // вытаскиваем из пула и настраиваем прожектайл 
-                Rocket rocket = main.rocketsPool.GetChild(0).GetComponent<Rocket>();
-                rocket.transform.parent = null;
-                rocket.transform.position = coll.bounds.center;
-                rocket.startPoint = rocket.transform.position;
-                rocket.maxRange = shootRange;
-                rocket.MyShooterTag = tag;
-                rocket.flying = true;
-                rocket.speed = rocketSpeed;
-                rocket.damage = rocketDamage;
-                //rocket.RocketTypeChanger(rocketType.Bomb);
-                rocket.RocketParamsChanger(MPB, rocketColor, rocketSize);
-                rocket.flyThrough = rocketFlyingThrough;
+                if ((transform.localPosition - startPos).magnitude >= distance)
+                {
+                    startPos = transform.localPosition;
+                    curDir = -curDir;
+                }
+                else
+                {
+                    transform.Translate(curDir * Time.deltaTime * speed, Space.World);
+                }
+            }
 
-                Vector3 randomVector = new Vector3(Random.Range(-shootSpreadCoeff, +shootSpreadCoeff), 0, Random.Range(-shootSpreadCoeff, +shootSpreadCoeff));
-                Vector3 lastPoint = transform.position + transform.forward * shootRange + randomVector;
-                Vector3 direction = lastPoint - transform.position;
+            // стрельба врага
+            if (shootRange > 0)
+            {
+                if (!reloading)
+                {
+                    // вытаскиваем из пула и настраиваем прожектайл 
+                    Rocket rocket = main.rocketsPool.GetChild(0).GetComponent<Rocket>();
+                    rocket.transform.parent = null;
+                    rocket.transform.position = coll.bounds.center;
+                    rocket.startPoint = rocket.transform.position;
+                    rocket.maxRange = shootRange;
+                    rocket.MyShooterTag = tag;
+                    rocket.flying = true;
+                    rocket.speed = rocketSpeed;
+                    rocket.damage = rocketDamage;
+                    //rocket.RocketTypeChanger(rocketType.Bomb);
+                    rocket.RocketParamsChanger(MPB, rocketColor, rocketSize);
+                    rocket.flyThrough = rocketFlyingThrough;
 
-                rocket.direction = direction;
+                    Vector3 randomVector = new Vector3(Random.Range(-shootSpreadCoeff, +shootSpreadCoeff), 0, Random.Range(-shootSpreadCoeff, +shootSpreadCoeff));
+                    Vector3 lastPoint = transform.position + transform.forward * shootRange + randomVector;
+                    Vector3 direction = lastPoint - transform.position;
 
-                // "пережаряжаемся" (задержка между выстрелами)
-                StartCoroutine(Reloading(reloadingTime));
+                    rocket.direction = direction;
+
+                    // "пережаряжаемся" (задержка между выстрелами)
+                    StartCoroutine(Reloading(reloadingTime));
+                }
             }
         }
     }

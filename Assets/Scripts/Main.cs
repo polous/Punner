@@ -6,6 +6,13 @@ using UnityEngine.UI;
 using UnityEngine.SceneManagement;
 using System.Linq;
 
+public enum movingDirection
+{
+    Left,
+    Right,
+    Down
+}
+
 public class Main : MonoBehaviour
 {
     [HideInInspector] public Transform Level;
@@ -71,6 +78,8 @@ public class Main : MonoBehaviour
 
     void Start()
     {
+        inMove = true;
+
         messagePanel.text = "";
         globalTimer = 0;
         repeatButton.SetActive(false);
