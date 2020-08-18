@@ -34,6 +34,14 @@ public class Enemy : MonoBehaviour
     Vector3 curDir;
     Vector3 startPos;
 
+    public float voidZoneDamage; // урон от войд зоны
+    public float voidZoneRadius; // радиус войд зоны
+    public float voidZoneDuration; // продолжительность от начала каста до непосредственно взрыва (в секундах)
+    public float voidZoneReloadingTime; // время перезарядки войд зоны (задержка между соседними кастами в секундах)
+    bool voidZoneReloading;
+
+    public float collDamage;
+
     void Start()
     {
         MPB = new MaterialPropertyBlock();
@@ -54,12 +62,50 @@ public class Enemy : MonoBehaviour
     }
 
 
+    // Получение точки выставления войд зоны
+    Vector3 GetVoidZoneLocalPosition()
+    {
+        Vector3 partyLocPos = main.Level.InverseTransformPoint(main.Party.position);
+        return new Vector3(partyLocPos.x, partyLocPos.y, partyLocPos.z + voidZoneDuration * main.worldMoveSpeed + 2f);
+    }
+
+
     void Update()
     {
         if (main == null) return;
 
-        if (transform.position.z > -35f && (main.Party.position - transform.position).magnitude <= 40f)
+        if (transform.position.z > -50f && (main.Party.position - transform.position).magnitude <= 40f)
         {
+            // кастуем войд зоны
+            if (voidZoneDamage > 0)
+            {
+                if (!voidZoneReloading)
+                {
+                    VoidZone voidZone = main.voidZonesPool.GetChild(0).GetComponent<VoidZone>();
+                    voidZone.transform.parent = main.Level;
+                    voidZone.transform.localPosition = GetVoidZoneLocalPosition();
+                    voidZone.damage = voidZoneDamage;
+                    voidZone.radius = voidZoneRadius;
+                    voidZone.transform.localScale = Vector3.one * voidZoneRadius;
+                    voidZone.duration = voidZoneDuration;
+                    voidZone.isCasting = true;
+                    voidZone.Custer = this;
+
+                    ParticleSystem ps = voidZone.GetComponentInChildren<ParticleSystem>(true);
+                    var psMain = ps.main;
+                    psMain.startSizeMultiplier = voidZoneRadius * 2f;
+
+                    Transform vzce = main.voidZoneCastEffectsPool.GetChild(0);
+                    vzce.transform.parent = transform;
+                    vzce.transform.position = transform.position;
+                    voidZone.castEffect = vzce;
+
+                    // "пережаряжаемся" (задержка между войд зонами)
+                    StartCoroutine(VoidZoneReloading(voidZoneReloadingTime));
+                }
+            }
+
+
             // движение врага
             if (speed > 0)
             {
@@ -112,5 +158,28 @@ public class Enemy : MonoBehaviour
         reloading = true;
         yield return new WaitForSeconds(reloadingTime);
         reloading = false;
+    }
+
+    // "перезарядка" войд зоны (задержка между кастами)
+    IEnumerator VoidZoneReloading(float voidZoneReloadingTime)
+    {
+        voidZoneReloading = true;
+        yield return new WaitForSeconds(voidZoneReloadingTime);
+        voidZoneReloading = false;
+    }
+
+    private void OnTriggerEnter(Collider other)
+    {
+        if (other.tag == "Player")
+        {
+            Player plr = other.GetComponent<Player>();
+            if (plr.inParty)
+            {
+                plr.curHealthPoint -= collDamage;
+                plr.main.BodyHitReaction(plr.mr, plr.MPB, plr.bodyColor);
+
+                plr.main.PlayerDie(plr);
+            }
+        }
     }
 }

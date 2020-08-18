@@ -52,20 +52,24 @@ MonoBehaviour:
   rocketSpeed: 0
   reloadingTime: 0
   rotateSpeed: 5
-  maxHealthPoint: 60
+  maxHealthPoint: 10
   curHealthPoint: 0
   healthPanel: {fileID: 0}
   healthPanelFill: {fileID: 0}
-  healPointsRecoveryCount: 30
+  healPointsRecoveryCount: 10
   healReloadingTime: 3
   healReloading: 0
   myHealingEffect: {fileID: 0}
   inJail: 1
   inParty: 0
+  changeParent: 0
   main: {fileID: 0}
   coll: {fileID: 4161790574753120986}
   bodyColor: {r: 0.28627452, g: 0.5764706, b: 0.38256207, a: 1}
   mr: {fileID: 0}
+  rocketColor: {r: 0, g: 0, b: 0, a: 0}
+  rocketSize: 0
+  newOffsetPos: {x: 0, y: 0, z: 0}
 --- !u!136 &4161790574753120986
 CapsuleCollider:
   m_ObjectHideFlags: 0
@@ -76,7 +80,7 @@ CapsuleCollider:
   m_Material: {fileID: 0}
   m_IsTrigger: 0
   m_Enabled: 0
-  m_Radius: 0.4
+  m_Radius: 0.35
   m_Height: 1.4
   m_Direction: 1
   m_Center: {x: 0, y: 0.7, z: 0}
@@ -188,7 +192,7 @@ Transform:
   m_GameObject: {fileID: 8046996167602223677}
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
   m_LocalPosition: {x: 0, y: 0.7, z: 0}
-  m_LocalScale: {x: 0.8, y: 0.7, z: 0.8}
+  m_LocalScale: {x: 0.7, y: 0.7, z: 0.7}
   m_Children:
   - {fileID: 5241074913353965623}
   m_Father: {fileID: 2482609418238612524}

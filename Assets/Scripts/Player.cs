@@ -35,6 +35,7 @@ public class Player : MonoBehaviour
 
     public bool inJail;
     public bool inParty;
+    public bool changeParent;
 
     Vector3 rndV3;
     RaycastHit hit;
@@ -48,7 +49,7 @@ public class Player : MonoBehaviour
     public Color rocketColor;
     public float rocketSize;
 
-    Vector3 newOffsetPos = Vector3.zero;
+    [HideInInspector] public Vector3 newOffsetPos = Vector3.zero;
 
 
     void Start()
@@ -82,16 +83,29 @@ public class Player : MonoBehaviour
             if (inParty)
             {
                 // случайные блуждания в пати относительно классовoго центра
-                if ((transform.localPosition - newOffsetPos).magnitude <= 0.1f)
+                //if ((transform.localPosition - newOffsetPos).magnitude <= 0.05f)
+                //{
+                //    rndV3 = new Vector3(Random.Range(-main.maxOffsetInPaty_X, +main.maxOffsetInPaty_X), 0, Random.Range(-main.maxOffsetInPaty_Z, +main.maxOffsetInPaty_Z));
+                //    if (type == playerType.Melee) newOffsetPos = main.Party_M.localPosition + rndV3;
+                //    else if (type == playerType.Range) newOffsetPos = main.Party_R.localPosition + rndV3;
+                //    else if (type == playerType.Heal) newOffsetPos = main.Party_H.localPosition + rndV3;
+                //}
+                //else
+                //{
+                //    transform.localPosition = Vector3.MoveTowards(transform.localPosition, newOffsetPos, Time.deltaTime * main.playerMoveSpeedInParty);
+                //}
+
+                //// случайные блуждания в пати относительно родителя центра
+                if ((transform.localPosition - newOffsetPos).magnitude <= 0.01f)
                 {
                     rndV3 = new Vector3(Random.Range(-main.maxOffsetInPaty_X, +main.maxOffsetInPaty_X), 0, Random.Range(-main.maxOffsetInPaty_Z, +main.maxOffsetInPaty_Z));
-                    if (type == playerType.Melee) newOffsetPos = main.Party_M.localPosition + rndV3;
-                    else if (type == playerType.Range) newOffsetPos = main.Party_R.localPosition + rndV3;
-                    else if (type == playerType.Heal) newOffsetPos = main.Party_H.localPosition + rndV3;
+                    newOffsetPos = rndV3;
+                    changeParent = false;
                 }
                 else
                 {
-                    transform.localPosition = Vector3.MoveTowards(transform.localPosition, newOffsetPos, Time.deltaTime * main.playerMoveSpeedInParty);
+                    if (!changeParent) transform.localPosition = Vector3.MoveTowards(transform.localPosition, newOffsetPos, Time.deltaTime * main.playerMoveSpeedInParty);
+                    else transform.localPosition = Vector3.MoveTowards(transform.localPosition, newOffsetPos, Time.deltaTime * main.playerMoveSpeedToParty);
                 }
 
                 // поведение в зависимости от класса игрока
@@ -195,18 +209,56 @@ public class Player : MonoBehaviour
                 Vector3 fwd = transform.forward; fwd.y = 0;
                 Vector3 dir = Vector3.forward; dir.y = 0;
 
-                if (type == playerType.Melee) newOffsetPos = main.Party_M.position + rndV3;
-                else if (type == playerType.Range) newOffsetPos = main.Party_R.position + rndV3;
-                else if (type == playerType.Heal) newOffsetPos = main.Party_H.position + rndV3;
+                //if (type == playerType.Melee) newOffsetPos = main.Party_M.position + rndV3;
+                //else if (type == playerType.Range) newOffsetPos = main.Party_R.position + rndV3;
+                //else if (type == playerType.Heal) newOffsetPos = main.Party_H.position + rndV3;
 
-                if ((transform.position - newOffsetPos).magnitude <= 0.2f)
+                //if ((transform.position - newOffsetPos).magnitude <= 0.2f)
+                //{
+                //    inParty = true;
+                //    transform.rotation = Quaternion.identity;
+
+                //    if (type == playerType.Melee) transform.SetParent(main.Party_M);
+                //    else if (type == playerType.Range) transform.SetParent(main.Party_R);
+                //    else if (type == playerType.Heal) transform.SetParent(main.Party_H);
+
+                //    coll.enabled = true;
+                //    main.playersInParty.Add(this);
+
+                //    Transform hPanelp = Instantiate(main.healthPanelPrefab).transform;
+                //    hPanelp.SetParent(main.healthPanelsPool);
+                //    hPanelp.localScale = new Vector3(1, 1, 1);
+                //    healthPanel = hPanelp;
+                //    healthPanelFill = hPanelp.GetChild(0).GetComponent<Image>();
+
+                //    newOffsetPos = transform.localPosition;
+                //}
+                //else
+                //{
+                //    transform.position = Vector3.MoveTowards(transform.position, newOffsetPos, Time.deltaTime * main.playerMoveSpeedToParty);
+                //    transform.rotation = Quaternion.LookRotation(Vector3.RotateTowards(fwd, dir, rotateSpeed * Time.deltaTime, 0));
+                //}
+
+                // новый вариант прихода в пати
+                //Transform newCore = null;
+                //foreach (Transform tr in main.PartyPositionList)
+                //{
+                //    if (tr.childCount == 0)
+                //    {
+                //        newCore = tr;
+                //        break;
+                //    }
+                //}
+
+                //newOffsetPos = newCore.position + rndV3;
+
+                //if ((transform.position - newOffsetPos).magnitude <= 0.01f)
+                if ((transform.localPosition - newOffsetPos).magnitude <= 0.01f)
                 {
                     inParty = true;
                     transform.rotation = Quaternion.identity;
 
-                    if (type == playerType.Melee) transform.SetParent(main.Party_M);
-                    else if (type == playerType.Range) transform.SetParent(main.Party_R);
-                    else if (type == playerType.Heal) transform.SetParent(main.Party_H);
+                    //transform.SetParent(newCore);
 
                     coll.enabled = true;
                     main.playersInParty.Add(this);
@@ -217,21 +269,17 @@ public class Player : MonoBehaviour
                     healthPanel = hPanelp;
                     healthPanelFill = hPanelp.GetChild(0).GetComponent<Image>();
 
-                    newOffsetPos = transform.localPosition;
-
-                    //if (type == playerType.Heal)
-                    //{
-                    //    Transform healingEffect = main.healingEffectsPool.GetChild(0);
-                    //    healingEffect.SetParent(transform);
-                    //    healingEffect.position = transform.position;
-                    //    myHealingEffect = healingEffect;
-                    //}
+                    //newOffsetPos = transform.localPosition;
                 }
                 else
                 {
-                    transform.position = Vector3.MoveTowards(transform.position, newOffsetPos, Time.deltaTime * main.playerMoveSpeedToParty);
+                    //transform.position = Vector3.MoveTowards(transform.position, newOffsetPos, Time.deltaTime * main.playerMoveSpeedToParty);
+                    transform.localPosition = Vector3.MoveTowards(transform.localPosition, newOffsetPos, Time.deltaTime * main.playerMoveSpeedToParty);
                     transform.rotation = Quaternion.LookRotation(Vector3.RotateTowards(fwd, dir, rotateSpeed * Time.deltaTime, 0));
                 }
+
+
+
             }
         }
         // если в тюрьме, то ждем освобождения
@@ -243,9 +291,11 @@ public class Player : MonoBehaviour
                 {
                     inJail = false;
                     transform.position = new Vector3(transform.position.x, 0, transform.position.z);
-                    transform.SetParent(null);
+                    //transform.SetParent(null);
 
-                    rndV3 = new Vector3(Random.Range(-main.maxOffsetInPaty_X, +main.maxOffsetInPaty_X), 0, Random.Range(-main.maxOffsetInPaty_Z, +main.maxOffsetInPaty_Z));
+                    //rndV3 = new Vector3(Random.Range(-main.maxOffsetInPaty_X, +main.maxOffsetInPaty_X), 0, Random.Range(-main.maxOffsetInPaty_Z, +main.maxOffsetInPaty_Z));
+
+                    main.RefreshPartyPositions(this, 0);
                 }
             }
         }

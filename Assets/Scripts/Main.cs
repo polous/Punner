@@ -23,6 +23,8 @@ public class Main : MonoBehaviour
 
     public Transform Party;
     public Transform Party_M, Party_R, Party_H;
+    public List<Transform> PartyPositionList;
+    public GameObject PlayerPrefab;
     public List<Player> playersInParty = new List<Player>();
 
     public float worldMoveSpeed; // вертикальная скорость смещения мира
@@ -42,6 +44,11 @@ public class Main : MonoBehaviour
     public Transform healingEffectsPool; // пул эффектов лечения
     public GameObject deathEffectPrefab; // префаб эффектов смерти
     public Transform deathEffectsPool; // пул эффектов смерти
+
+    public GameObject voidZonePrefab; // префаб войд зон
+    public Transform voidZonesPool; // пул войд зон
+    public GameObject voidZoneCastEffectPrefab; // префаб эффектов кастования войд зоны
+    public Transform voidZoneCastEffectsPool; // пул эффектов кастования войд зоны
 
     public Text messagePanel;
     public GameObject repeatButton;
@@ -74,6 +81,21 @@ public class Main : MonoBehaviour
             GameObject HE = Instantiate(healingEffectPrefab) as GameObject;
             HE.transform.SetParent(healingEffectsPool);
         }
+
+        // заполняем пул войд зон
+        for (int i = 0; i < 30; i++)
+        {
+            GameObject voidzone = Instantiate(voidZonePrefab) as GameObject;
+            voidzone.transform.SetParent(voidZonesPool);
+            voidzone.GetComponent<VoidZone>().main = this;
+        }
+
+        // заполняем пул эффектов кастования войд зон
+        for (int i = 0; i < 30; i++)
+        {
+            GameObject voidzonecasteffect = Instantiate(voidZoneCastEffectPrefab) as GameObject;
+            voidzonecasteffect.transform.SetParent(voidZoneCastEffectsPool);
+        }
     }
 
     void Start()
@@ -83,6 +105,13 @@ public class Main : MonoBehaviour
         messagePanel.text = "";
         globalTimer = 0;
         repeatButton.SetActive(false);
+
+        Player plr = Instantiate(PlayerPrefab).GetComponent<Player>();
+        plr.transform.SetParent(PartyPositionList[0]);
+        plr.transform.localPosition = Vector3.zero;
+        plr.inJail = false;
+        plr.inParty = true;
+        plr.coll.enabled = true;
 
         foreach (Player p in Party.GetComponentsInChildren<Player>())
         {
@@ -111,7 +140,7 @@ public class Main : MonoBehaviour
         //        print("");
         //    }
         //}
-        if(shootingOnlyInMove) inMove = false;
+        if (shootingOnlyInMove) inMove = false;
         if (Input.GetMouseButton(0))
         {
             inMove = true;
@@ -138,6 +167,8 @@ public class Main : MonoBehaviour
                 }
             }
         }
+
+        //RefreshPartyPositions(playersInParty[0], 0);
     }
 
     public void WorldUpdate()
@@ -215,6 +246,8 @@ public class Main : MonoBehaviour
                 p.myHealingEffect.SetParent(healingEffectsPool);
             }
 
+            RefreshPartyPositions(p, 1);
+
             playersInParty.Remove(p);
             Destroy(p.healthPanel.gameObject);
             Destroy(p.gameObject);
@@ -276,6 +309,144 @@ public class Main : MonoBehaviour
         yield return new WaitForSeconds(1);
 
         healingEffect.SetParent(healingEffectsPool);
+    }
+
+    public void RefreshPartyPositions(Player plr, int type) // type: 0 - добавление игрока в пати; 1 - убыль (смерть) игрока из пати
+    {
+        Transform LastPlayerParent = PartyPositionList.Select(x => x).Where(x => x.childCount != 0).Last();
+        Transform LastMeleeParent = null;
+        List<Player> melees = playersInParty.Select(x => x).Where(x => x.type == playerType.Melee).ToList();
+        List<Player> supports = playersInParty.Select(x => x).Where(x => x.type != playerType.Melee).ToList();
+        if (melees.Count != 0) LastMeleeParent = melees.Last().transform.parent;
+
+        int indexOfLastPlayerParent = PartyPositionList.IndexOf(LastPlayerParent);
+        int indexOfLastMeleeParent = -1;
+        if (LastMeleeParent != null) indexOfLastMeleeParent = PartyPositionList.IndexOf(LastMeleeParent);
+
+        if (type == 0)
+        {
+            if (plr.type != playerType.Melee)
+            {
+                if (PartyPositionList[0].childCount == 0)
+                {
+                    plr.transform.SetParent(PartyPositionList[0]);
+                    plr.newOffsetPos = Vector3.zero;
+                }
+                else
+                {
+                    plr.transform.SetParent(PartyPositionList[indexOfLastPlayerParent + 1]);
+                    plr.newOffsetPos = Vector3.zero;
+                }
+            }
+            else
+            {
+                if (melees.Count == 0)
+                {
+                    if (PartyPositionList[0].childCount == 0)
+                    {
+                        plr.transform.SetParent(PartyPositionList[0]);
+                        plr.newOffsetPos = Vector3.zero;
+                    }
+                    else
+                    {
+                        Player curPlayer = PartyPositionList[0].GetComponentInChildren<Player>();
+                        curPlayer.newOffsetPos = Vector3.zero;
+                        curPlayer.transform.SetParent(PartyPositionList[indexOfLastPlayerParent + 1]);
+                        curPlayer.changeParent = true;
+
+                        plr.transform.SetParent(PartyPositionList[0]);
+                        plr.newOffsetPos = Vector3.zero;
+                    }
+                }
+                else
+                {
+                    if (PartyPositionList[0].childCount == 0)
+                    {
+                        plr.transform.SetParent(PartyPositionList[0]);
+                        plr.newOffsetPos = Vector3.zero;
+                    }
+                    else
+                    {
+                        if (supports.Count == 0)
+                        {
+                            plr.transform.SetParent(PartyPositionList[indexOfLastMeleeParent + 1]);
+                            plr.newOffsetPos = Vector3.zero;
+                        }
+                        else
+                        {
+                            Player firstSupportPlayer = PartyPositionList[indexOfLastMeleeParent + 1].GetComponentInChildren<Player>();
+                            firstSupportPlayer.newOffsetPos = Vector3.zero;
+                            firstSupportPlayer.transform.SetParent(PartyPositionList[indexOfLastPlayerParent + 1]);
+                            firstSupportPlayer.changeParent = true;
+
+                            plr.transform.SetParent(PartyPositionList[indexOfLastMeleeParent + 1]);
+                            plr.newOffsetPos = Vector3.zero;
+                        }
+                    }
+                }
+            }
+        }
+
+        if (type == 1)
+        {
+            Transform deadPlayerParent = plr.transform.parent;
+            int indexOfDeadPlayerParent = PartyPositionList.IndexOf(deadPlayerParent);
+
+            if (plr.type != playerType.Melee)
+            {
+                if (supports.Count > 1)
+                {
+                    if (indexOfDeadPlayerParent != indexOfLastPlayerParent)
+                    {
+                        Player lastPlayer = PartyPositionList[indexOfLastPlayerParent].GetComponentInChildren<Player>();
+                        lastPlayer.newOffsetPos = Vector3.zero;
+                        lastPlayer.transform.SetParent(PartyPositionList[indexOfDeadPlayerParent]);
+                        lastPlayer.changeParent = true;
+                    }
+                }
+            }
+            else
+            {
+                if (melees.Count > 1)
+                {
+                    if (indexOfDeadPlayerParent != indexOfLastMeleeParent)
+                    {
+                        Player lastMeleePlayer = PartyPositionList[indexOfLastMeleeParent].GetComponentInChildren<Player>();
+                        lastMeleePlayer.newOffsetPos = Vector3.zero;
+                        lastMeleePlayer.transform.SetParent(PartyPositionList[indexOfDeadPlayerParent]);
+                        lastMeleePlayer.changeParent = true;
+
+                        if (supports.Count != 0)
+                        {
+                            Player lastPlayer = PartyPositionList[indexOfLastPlayerParent].GetComponentInChildren<Player>();
+                            lastPlayer.newOffsetPos = Vector3.zero;
+                            lastPlayer.transform.SetParent(PartyPositionList[indexOfLastMeleeParent]);
+                            lastPlayer.changeParent = true;
+                        }
+                    }
+                    else
+                    {
+                        if (supports.Count != 0)
+                        {
+                            Player lastPlayer = PartyPositionList[indexOfLastPlayerParent].GetComponentInChildren<Player>();
+                            lastPlayer.newOffsetPos = Vector3.zero;
+                            lastPlayer.transform.SetParent(PartyPositionList[indexOfDeadPlayerParent]);
+                            lastPlayer.changeParent = true;
+                        }
+                    }
+                }
+                else
+                {
+                    if (supports.Count != 0)
+                    {
+                        Player lastPlayer = PartyPositionList[indexOfLastPlayerParent].GetComponentInChildren<Player>();
+                        lastPlayer.newOffsetPos = Vector3.zero;
+                        lastPlayer.transform.SetParent(PartyPositionList[indexOfDeadPlayerParent]);
+                        lastPlayer.changeParent = true;
+                    }
+                }
+            }
+        }
     }
 
 }
