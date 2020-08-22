@@ -10,7 +10,8 @@ public enum movingDirection
 {
     Left,
     Right,
-    Down
+    Down,
+    Up
 }
 
 public class Main : MonoBehaviour
@@ -22,10 +23,14 @@ public class Main : MonoBehaviour
     public float xOffSet;
 
     public Transform Party;
-    public Transform Party_M, Party_R, Party_H;
+    //public Transform Party_M, Party_R, Party_H;
     public List<Transform> PartyPositionList;
-    public GameObject PlayerPrefab;
+    public List<Transform> RowPositionList;
+    public GameObject PlayerPrefab_Range;
+    public GameObject PlayerPrefab_Melee;
+    public GameObject PlayerPrefab_Heal;
     public List<Player> playersInParty = new List<Player>();
+    public int partyPlayerLimit;
 
     public float worldMoveSpeed; // вертикальная скорость смещения мира
     public float partyMoveSpeed; // горизонатльная скорость перемещения пати
@@ -52,6 +57,10 @@ public class Main : MonoBehaviour
 
     public Text messagePanel;
     public GameObject repeatButton;
+    public GameObject NextButton;
+    public List<GameObject> dontDestroyOnLoadGameObjects;
+    public List<PlayerData> storedPlayersListForReset = new List<PlayerData>();
+    public List<PlayerData> storedPlayersListForNext = new List<PlayerData>();
 
     [HideInInspector] public float globalTimer;
 
@@ -100,34 +109,72 @@ public class Main : MonoBehaviour
 
     void Start()
     {
+        StartScene();
+    }
+
+    void StartScene()
+    {
         inMove = true;
 
         messagePanel.text = "";
         globalTimer = 0;
         repeatButton.SetActive(false);
+        NextButton.SetActive(false);
 
-        Player plr = Instantiate(PlayerPrefab).GetComponent<Player>();
-        plr.transform.SetParent(PartyPositionList[0]);
-        plr.transform.localPosition = Vector3.zero;
-        plr.inJail = false;
-        plr.inParty = true;
-        plr.coll.enabled = true;
+        Party.position = new Vector3(0, 0, -35);
 
-        foreach (Player p in Party.GetComponentsInChildren<Player>())
+        int curSceneIndex = SceneManager.GetActiveScene().buildIndex;
+        if (curSceneIndex == 0)
         {
-            playersInParty.Add(p);
+            Player plr = Instantiate(PlayerPrefab_Range).GetComponent<Player>();
+            plr.transform.SetParent(PartyPositionList[0]);
+            plr.transform.localPosition = Vector3.zero;
+            plr.inJail = false;
+            plr.inParty = true;
+            plr.coll.enabled = true;
+            playersInParty.Add(plr);
+        }
+
+        foreach (Player p in playersInParty)
+        {
             Transform hPanelp = Instantiate(healthPanelPrefab).transform;
             hPanelp.SetParent(healthPanelsPool);
             hPanelp.localScale = new Vector3(1, 1, 1);
             p.healthPanel = hPanelp;
             p.healthPanelFill = hPanelp.GetChild(0).GetComponent<Image>();
         }
+
+        foreach (Player p in FindObjectsOfType<Player>())
+        {
+            p.StartScene();
+        }
+
+        foreach (Enemy e in FindObjectsOfType<Enemy>())
+        {
+            e.StartScene();
+        }
+
+        foreach (Jail j in FindObjectsOfType<Jail>())
+        {
+            j.StartScene();
+        }
+
+        foreach (Obstacles o in FindObjectsOfType<Obstacles>())
+        {
+            o.StartScene();
+        }
+
+        FinishLine Finish = FindObjectOfType<FinishLine>();
+        Finish.main = this;
+
+        RefreshPartyPositions(null);
+
+        Level = GameObject.Find("Level").transform;
     }
 
-    // Update is called once per frame
+
     void Update()
     {
-
         //foreach (Touch touch in Input.touches)
         //{
         //    if (touch.phase == TouchPhase.Began)
@@ -135,9 +182,8 @@ public class Main : MonoBehaviour
         //        //Ray ray = Camera.main.ScreenPointToRay(touch.position);
         //        //if (Physics.Raycast(ray))
         //        //{
-        //        //    print("");
+        //        //
         //        //}
-        //        print("");
         //    }
         //}
         if (shootingOnlyInMove) inMove = false;
@@ -160,15 +206,13 @@ public class Main : MonoBehaviour
                         if (xPos < 0) xPos = -xLimit;
                     }
 
-                    newPartyPoint = new Vector3(xPos, Party.position.y, Party.position.z);
+                    newPartyPoint = new Vector3(xPos, 0, -35);
 
 
                     Party.position = Vector3.Slerp(Party.position, newPartyPoint, Time.deltaTime * partyMoveSpeed);
                 }
             }
         }
-
-        //RefreshPartyPositions(playersInParty[0], 0);
     }
 
     public void WorldUpdate()
@@ -179,7 +223,7 @@ public class Main : MonoBehaviour
 
     private void LateUpdate()
     {
-        Level.Translate(Vector3.back * Time.deltaTime * worldMoveSpeed, Space.World);
+        if (Level != null) Level.Translate(Vector3.back * Time.deltaTime * worldMoveSpeed, Space.World);
 
         if (!repeatButton.activeSelf)
         {
@@ -211,22 +255,6 @@ public class Main : MonoBehaviour
     }
 
 
-    public void ResetCurrentLevel()
-    {
-        StartCoroutine(resetCurrentLevel());
-    }
-
-    IEnumerator resetCurrentLevel()
-    {
-        int curSceneIndex = SceneManager.GetActiveScene().buildIndex;
-        if (curSceneIndex == 0)
-        {
-            yield return null;
-            SceneManager.LoadScene(curSceneIndex);
-        }
-    }
-
-
     public void PlayerDie(Player p)
     {
         StartCoroutine(PlayerDeath(p));
@@ -246,9 +274,8 @@ public class Main : MonoBehaviour
                 p.myHealingEffect.SetParent(healingEffectsPool);
             }
 
-            RefreshPartyPositions(p, 1);
+            RefreshPartyPositions(p);
 
-            playersInParty.Remove(p);
             Destroy(p.healthPanel.gameObject);
             Destroy(p.gameObject);
 
@@ -258,19 +285,22 @@ public class Main : MonoBehaviour
 
             yield return new WaitForSeconds(1);
 
+            playersInParty.Remove(p);
+
             deathEffect.SetParent(deathEffectsPool);
 
             if (playersInParty.Count == 0)
             {
                 // находим всех игроков вне пати, но уже и не в тюрьме
-                List<Player> freePlrs = Level.GetComponentsInChildren<Player>().Select(x => x).Where(x => !x.inJail).ToList();
+                List<Player> freePlrs = Party.GetComponentsInChildren<Player>().Select(x => x).Where(x => !x.inParty).ToList();
                 // если освобожденных игроков нет, то конец игры
                 if (freePlrs.Count == 0)
                 {
-                    worldMoveSpeed = 0;
+                    Level = null;
                     messagePanel.gameObject.SetActive(true);
                     messagePanel.text = "Ты проиграл!\nСоберись, тряпка!";
                     repeatButton.SetActive(true);
+                    NextButton.SetActive(false);
                 }
             }
         }
@@ -286,7 +316,9 @@ public class Main : MonoBehaviour
     {
         if (e.curHealthPoint <= 0)
         {
-            Destroy(e.gameObject);
+            e.enabled = false;
+            foreach (MeshRenderer mr in e.GetComponentsInChildren<MeshRenderer>()) mr.enabled = false;
+            e.GetComponent<Collider>().enabled = false;
 
             Transform deathEffect = deathEffectsPool.GetChild(0);
             deathEffect.SetParent(Level);
@@ -295,6 +327,7 @@ public class Main : MonoBehaviour
             yield return new WaitForSeconds(1);
 
             deathEffect.SetParent(deathEffectsPool);
+            Destroy(e.gameObject);
         }
     }
 
@@ -311,142 +344,237 @@ public class Main : MonoBehaviour
         healingEffect.SetParent(healingEffectsPool);
     }
 
-    public void RefreshPartyPositions(Player plr, int type) // type: 0 - добавление игрока в пати; 1 - убыль (смерть) игрока из пати
+    public void RefreshPartyPositions(Player plr)
     {
-        Transform LastPlayerParent = PartyPositionList.Select(x => x).Where(x => x.childCount != 0).Last();
+        Transform LastPlayerParent = null;
         Transform LastMeleeParent = null;
-        List<Player> melees = playersInParty.Select(x => x).Where(x => x.type == playerType.Melee).ToList();
-        List<Player> supports = playersInParty.Select(x => x).Where(x => x.type != playerType.Melee).ToList();
-        if (melees.Count != 0) LastMeleeParent = melees.Last().transform.parent;
+        List<Player> melees;
+        List<Player> supports;
 
-        int indexOfLastPlayerParent = PartyPositionList.IndexOf(LastPlayerParent);
+        int indexOfLastPlayerParent = -1;
         int indexOfLastMeleeParent = -1;
-        if (LastMeleeParent != null) indexOfLastMeleeParent = PartyPositionList.IndexOf(LastMeleeParent);
 
-        if (type == 0)
+        List<Player> fullPlayerStack = Party.GetComponentsInChildren<Player>().ToList();
+        if (plr != null)
         {
-            if (plr.type != playerType.Melee)
+            if (fullPlayerStack.Count == partyPlayerLimit)
             {
-                if (PartyPositionList[0].childCount == 0)
+                plr.inJail = true;
+                plr.inParty = false;
+                playersInParty.Remove(plr);
+                Destroy(plr.gameObject);
+
+                //лечим всех
+                foreach (Player p in playersInParty)
                 {
-                    plr.transform.SetParent(PartyPositionList[0]);
-                    plr.newOffsetPos = Vector3.zero;
+                    p.curHealthPoint += 5;
+                    if (p.curHealthPoint > p.maxHealthPoint)
+                    {
+                        p.curHealthPoint = p.maxHealthPoint;
+                    }
                 }
-                else
-                {
-                    plr.transform.SetParent(PartyPositionList[indexOfLastPlayerParent + 1]);
-                    plr.newOffsetPos = Vector3.zero;
-                }
+
+                return;
             }
             else
             {
-                if (melees.Count == 0)
-                {
-                    if (PartyPositionList[0].childCount == 0)
-                    {
-                        plr.transform.SetParent(PartyPositionList[0]);
-                        plr.newOffsetPos = Vector3.zero;
-                    }
-                    else
-                    {
-                        Player curPlayer = PartyPositionList[0].GetComponentInChildren<Player>();
-                        curPlayer.newOffsetPos = Vector3.zero;
-                        curPlayer.transform.SetParent(PartyPositionList[indexOfLastPlayerParent + 1]);
-                        curPlayer.changeParent = true;
-
-                        plr.transform.SetParent(PartyPositionList[0]);
-                        plr.newOffsetPos = Vector3.zero;
-                    }
-                }
-                else
-                {
-                    if (PartyPositionList[0].childCount == 0)
-                    {
-                        plr.transform.SetParent(PartyPositionList[0]);
-                        plr.newOffsetPos = Vector3.zero;
-                    }
-                    else
-                    {
-                        if (supports.Count == 0)
-                        {
-                            plr.transform.SetParent(PartyPositionList[indexOfLastMeleeParent + 1]);
-                            plr.newOffsetPos = Vector3.zero;
-                        }
-                        else
-                        {
-                            Player firstSupportPlayer = PartyPositionList[indexOfLastMeleeParent + 1].GetComponentInChildren<Player>();
-                            firstSupportPlayer.newOffsetPos = Vector3.zero;
-                            firstSupportPlayer.transform.SetParent(PartyPositionList[indexOfLastPlayerParent + 1]);
-                            firstSupportPlayer.changeParent = true;
-
-                            plr.transform.SetParent(PartyPositionList[indexOfLastMeleeParent + 1]);
-                            plr.newOffsetPos = Vector3.zero;
-                        }
-                    }
-                }
+                fullPlayerStack.Add(plr);
             }
         }
 
-        if (type == 1)
-        {
-            Transform deadPlayerParent = plr.transform.parent;
-            int indexOfDeadPlayerParent = PartyPositionList.IndexOf(deadPlayerParent);
+        melees = fullPlayerStack.Select(x => x).Where(x => x.type == playerType.Melee && x.curHealthPoint > 0).ToList();
+        supports = fullPlayerStack.Select(x => x).Where(x => x.type != playerType.Melee && x.curHealthPoint > 0).ToList();
 
-            if (plr.type != playerType.Melee)
+        if (melees.Count != 0)
+        {
+            LastMeleeParent = melees.Last().transform.parent;
+            indexOfLastMeleeParent = PartyPositionList.IndexOf(LastMeleeParent);
+        }
+        else LastMeleeParent = null;
+        if (supports.Count != 0)
+        {
+            LastPlayerParent = supports.Last().transform.parent;
+            indexOfLastPlayerParent = PartyPositionList.IndexOf(LastPlayerParent);
+        }
+        else LastPlayerParent = null;
+
+        for (int i = 0; i < melees.Count; i++)
+        {
+            melees[i].newOffsetPos = Vector3.zero;
+            melees[i].transform.SetParent(PartyPositionList[i]);
+            melees[i].changeParent = true;
+        }
+        for (int i = 0; i < supports.Count; i++)
+        {
+            supports[i].newOffsetPos = Vector3.zero;
+            if (melees.Count > 0 && melees.Count <= 3) supports[i].transform.SetParent(PartyPositionList[i + 3]);
+            else supports[i].transform.SetParent(PartyPositionList[i + melees.Count]);
+            supports[i].changeParent = true;
+        }
+
+        for (int i = 0; i < RowPositionList.Count; i++)
+        {
+            if (RowPositionList[i].GetComponentsInChildren<Player>().Select(x => x).Where(x => x.curHealthPoint > 0).Count() == 2)
             {
-                if (supports.Count > 1)
-                {
-                    if (indexOfDeadPlayerParent != indexOfLastPlayerParent)
-                    {
-                        Player lastPlayer = PartyPositionList[indexOfLastPlayerParent].GetComponentInChildren<Player>();
-                        lastPlayer.newOffsetPos = Vector3.zero;
-                        lastPlayer.transform.SetParent(PartyPositionList[indexOfDeadPlayerParent]);
-                        lastPlayer.changeParent = true;
-                    }
-                }
+                RowPositionList[i].localPosition = new Vector3(0.3f, RowPositionList[i].localPosition.y, RowPositionList[i].localPosition.z);
             }
             else
             {
-                if (melees.Count > 1)
-                {
-                    if (indexOfDeadPlayerParent != indexOfLastMeleeParent)
-                    {
-                        Player lastMeleePlayer = PartyPositionList[indexOfLastMeleeParent].GetComponentInChildren<Player>();
-                        lastMeleePlayer.newOffsetPos = Vector3.zero;
-                        lastMeleePlayer.transform.SetParent(PartyPositionList[indexOfDeadPlayerParent]);
-                        lastMeleePlayer.changeParent = true;
-
-                        if (supports.Count != 0)
-                        {
-                            Player lastPlayer = PartyPositionList[indexOfLastPlayerParent].GetComponentInChildren<Player>();
-                            lastPlayer.newOffsetPos = Vector3.zero;
-                            lastPlayer.transform.SetParent(PartyPositionList[indexOfLastMeleeParent]);
-                            lastPlayer.changeParent = true;
-                        }
-                    }
-                    else
-                    {
-                        if (supports.Count != 0)
-                        {
-                            Player lastPlayer = PartyPositionList[indexOfLastPlayerParent].GetComponentInChildren<Player>();
-                            lastPlayer.newOffsetPos = Vector3.zero;
-                            lastPlayer.transform.SetParent(PartyPositionList[indexOfDeadPlayerParent]);
-                            lastPlayer.changeParent = true;
-                        }
-                    }
-                }
-                else
-                {
-                    if (supports.Count != 0)
-                    {
-                        Player lastPlayer = PartyPositionList[indexOfLastPlayerParent].GetComponentInChildren<Player>();
-                        lastPlayer.newOffsetPos = Vector3.zero;
-                        lastPlayer.transform.SetParent(PartyPositionList[indexOfDeadPlayerParent]);
-                        lastPlayer.changeParent = true;
-                    }
-                }
+                RowPositionList[i].localPosition = new Vector3(0, RowPositionList[i].localPosition.y, RowPositionList[i].localPosition.z);
             }
         }
+    }
+
+
+    public void ResetCurrentLevel()
+    {
+        StartCoroutine(resetCurrentLevel());
+    }
+
+    IEnumerator resetCurrentLevel()
+    {
+        int curSceneIndex = SceneManager.GetActiveScene().buildIndex;
+        if (curSceneIndex == 0)
+        {
+            yield return null;
+            SceneManager.LoadScene(curSceneIndex);
+        }
+        else
+        {
+            foreach (GameObject go in dontDestroyOnLoadGameObjects)
+            {
+                DontDestroyOnLoad(go);
+            }
+
+            foreach (Player p in playersInParty)
+            {
+                Destroy(p.gameObject);
+            }
+            playersInParty.Clear();
+
+            yield return null;
+
+            AsyncOperation operation = SceneManager.LoadSceneAsync(curSceneIndex);
+            while (!operation.isDone)
+            {
+                yield return null;
+            }
+
+            for (int i = 0; i < storedPlayersListForReset.Count; i++)
+            {
+                Player plr = null;
+                if (storedPlayersListForNext[i].type == playerType.Range)
+                {
+                    plr = Instantiate(PlayerPrefab_Range).GetComponent<Player>();
+                }
+                else if (storedPlayersListForNext[i].type == playerType.Melee)
+                {
+                    plr = Instantiate(PlayerPrefab_Melee).GetComponent<Player>();
+                }
+                else if (storedPlayersListForNext[i].type == playerType.Heal)
+                {
+                    plr = Instantiate(PlayerPrefab_Heal).GetComponent<Player>();
+                }
+                plr.transform.SetParent(PartyPositionList[i]);
+                plr.transform.localPosition = Vector3.zero;
+                plr.inJail = false;
+                plr.inParty = true;
+                plr.coll.enabled = true;
+                playersInParty.Add(plr);
+
+                PlayerDataToPlayer(storedPlayersListForNext[i], plr);
+            }
+
+            // прогрузилась сцена
+            yield return null;
+            StartScene();
+        }
+    }
+
+    public void LoadNextLevel()
+    {
+        StartCoroutine(loadNextLevel());
+    }
+
+    IEnumerator loadNextLevel()
+    {
+        int nextSceneIndex = SceneManager.GetActiveScene().buildIndex + 1;
+        if (SceneManager.sceneCountInBuildSettings == nextSceneIndex)
+        {
+            messagePanel.text = "Ты прошел все уровни!\nХочешь играть дальше?\nСоздай новые!";
+            yield break;
+        }
+
+        yield return null;
+
+        foreach (GameObject go in dontDestroyOnLoadGameObjects)
+        {
+            DontDestroyOnLoad(go);
+        }
+
+        storedPlayersListForReset = storedPlayersListForNext;
+
+        foreach (Player p in playersInParty)
+        {
+            Destroy(p.gameObject);
+        }
+        playersInParty.Clear();
+
+        yield return null;
+
+        AsyncOperation operation = SceneManager.LoadSceneAsync(nextSceneIndex);
+        while (!operation.isDone)
+        {
+            yield return null;
+        }
+
+        for (int i = 0; i < storedPlayersListForNext.Count; i++)
+        {
+            Player plr = null;
+            if (storedPlayersListForNext[i].type == playerType.Range)
+            {
+                plr = Instantiate(PlayerPrefab_Range).GetComponent<Player>();
+            }
+            else if (storedPlayersListForNext[i].type == playerType.Melee)
+            {
+                plr = Instantiate(PlayerPrefab_Melee).GetComponent<Player>();
+            }
+            else if (storedPlayersListForNext[i].type == playerType.Heal)
+            {
+                plr = Instantiate(PlayerPrefab_Heal).GetComponent<Player>();
+            }
+            plr.transform.SetParent(PartyPositionList[i]);
+            plr.transform.localPosition = Vector3.zero;
+            plr.inJail = false;
+            plr.inParty = true;
+            plr.coll.enabled = true;
+            playersInParty.Add(plr);
+
+            PlayerDataToPlayer(storedPlayersListForNext[i], plr);
+        }
+
+        // прогрузилась сцена
+        yield return null;
+        StartScene();
+    }
+
+
+
+    public void PlayerDataToPlayer(PlayerData pd, Player p)
+    {
+        p.type = pd.type;
+        p.shootRange = pd.shootRange;
+        p.shootSpreadCoeff = pd.shootSpreadCoeff;
+        p.rocketDamage = pd.rocketDamage;
+        p.rocketSpeed = pd.rocketSpeed;
+        p.reloadingTime = pd.reloadingTime;
+        p.rotateSpeed = pd.rotateSpeed;
+        p.maxHealthPoint = pd.maxHealthPoint;
+        p.healPointsRecoveryCount = pd.healPointsRecoveryCount;
+        p.healReloadingTime = pd.healReloadingTime;
+        p.bodyColor = pd.bodyColor;
+        p.rocketColor = pd.rocketColor;
+        p.rocketSize = pd.rocketSize;
     }
 
 }

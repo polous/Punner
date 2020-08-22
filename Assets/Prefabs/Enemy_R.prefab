@@ -62,7 +62,7 @@ MonoBehaviour:
   shootRange: 40
   shootSpreadCoeff: 2
   rocketDamage: 10
-  rocketSpeed: 8
+  rocketSpeed: 3
   reloadingTime: 2
   maxHealthPoint: 10
   curHealthPoint: 0

@@ -11,7 +11,7 @@ GameObject:
   - component: {fileID: 2482609418238612524}
   - component: {fileID: 8216961823442154976}
   - component: {fileID: 125101755362757307}
-  m_Layer: 10
+  m_Layer: 0
   m_Name: Player_R
   m_TagString: Player
   m_Icon: {fileID: 0}
@@ -49,7 +49,7 @@ MonoBehaviour:
   shootRange: 40
   shootSpreadCoeff: 0.5
   rocketDamage: 1
-  rocketSpeed: 15
+  rocketSpeed: 20
   reloadingTime: 0.2
   rotateSpeed: 5
   maxHealthPoint: 10

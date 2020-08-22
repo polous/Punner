@@ -42,7 +42,7 @@ public class Enemy : MonoBehaviour
 
     public float collDamage;
 
-    void Start()
+    public void StartScene()
     {
         MPB = new MaterialPropertyBlock();
         mr = GetComponentInChildren<MeshRenderer>();
@@ -59,6 +59,7 @@ public class Enemy : MonoBehaviour
         if (direction == movingDirection.Left) curDir = Vector3.left;
         else if (direction == movingDirection.Right) curDir = Vector3.right;
         else if (direction == movingDirection.Down) curDir = Vector3.back;
+        else if (direction == movingDirection.Up) curDir = Vector3.forward;
     }
 
 
@@ -127,7 +128,7 @@ public class Enemy : MonoBehaviour
                 {
                     // вытаскиваем из пула и настраиваем прожектайл 
                     Rocket rocket = main.rocketsPool.GetChild(0).GetComponent<Rocket>();
-                    rocket.transform.parent = null;
+                    rocket.transform.parent = main.Level;
                     rocket.transform.position = coll.bounds.center;
                     rocket.startPoint = rocket.transform.position;
                     rocket.maxRange = shootRange;
@@ -140,8 +141,8 @@ public class Enemy : MonoBehaviour
                     rocket.flyThrough = rocketFlyingThrough;
 
                     Vector3 randomVector = new Vector3(Random.Range(-shootSpreadCoeff, +shootSpreadCoeff), 0, Random.Range(-shootSpreadCoeff, +shootSpreadCoeff));
-                    Vector3 lastPoint = transform.position + transform.forward * shootRange + randomVector;
-                    Vector3 direction = lastPoint - transform.position;
+                    Vector3 lastPoint = transform.localPosition + transform.forward * shootRange + randomVector;
+                    Vector3 direction = lastPoint - transform.localPosition;
 
                     rocket.direction = direction;
 

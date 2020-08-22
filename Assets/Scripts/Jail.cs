@@ -14,7 +14,7 @@ public class Jail : MonoBehaviour
     [HideInInspector] public MeshRenderer mr;
 
 
-    void Start()
+    public void StartScene()
     {
         MPB = new MaterialPropertyBlock();
         mr = GetComponent<MeshRenderer>();

@@ -11,13 +11,14 @@ public class Obstacles : MonoBehaviour
     Vector3 curDir;
     Vector3 startPos;
 
-    void Start()
+    public void StartScene()
     {
         startPos = transform.localPosition;
 
         if (direction == movingDirection.Left) curDir = Vector3.left;
         else if (direction == movingDirection.Right) curDir = Vector3.right;
         else if (direction == movingDirection.Down) curDir = Vector3.back;
+        else if (direction == movingDirection.Up) curDir = Vector3.forward;
     }
 
     void Update()
@@ -43,10 +44,32 @@ public class Obstacles : MonoBehaviour
             Player plr = other.GetComponent<Player>();
             if (plr.inParty)
             {
-                plr.curHealthPoint -= damage;
-                plr.main.BodyHitReaction(plr.mr, plr.MPB, plr.bodyColor);
+                Jail jail = GetComponent<Jail>();
+                if (jail != null)
+                {
+                    jail.curHP -= plr.rocketDamage + 10;
+                    jail.textMesh.text = jail.curHP.ToString();
+                    plr.main.BodyHitReaction(jail.mr, jail.MPB, jail.bodyColor);
+                    
+                    if (jail.curHP <= 0)
+                    {
+                        Destroy(jail.gameObject);
+                    }
+                    else
+                    {
+                        plr.curHealthPoint -= damage;
+                        plr.main.BodyHitReaction(plr.mr, plr.MPB, plr.bodyColor);
 
-                plr.main.PlayerDie(plr);
+                        plr.main.PlayerDie(plr);
+                    }
+                }
+                else
+                {
+                    plr.curHealthPoint -= damage;
+                    plr.main.BodyHitReaction(plr.mr, plr.MPB, plr.bodyColor);
+
+                    plr.main.PlayerDie(plr);
+                }
             }
         }
     }

@@ -51,8 +51,10 @@ public class Player : MonoBehaviour
 
     [HideInInspector] public Vector3 newOffsetPos = Vector3.zero;
 
+    //public Transform myPartyTransform;
 
-    void Start()
+
+    public void StartScene()
     {
         MPB = new MaterialPropertyBlock();
         mr = GetComponentInChildren<MeshRenderer>();
@@ -118,7 +120,7 @@ public class Player : MonoBehaviour
                     {
                         // вытаскиваем из пула и настраиваем прожектайл 
                         Rocket rocket = main.rocketsPool.GetChild(0).GetComponent<Rocket>();
-                        rocket.transform.parent = null;
+                        rocket.transform.parent = main.Level;
                         rocket.transform.position = coll.bounds.center;
                         rocket.startPoint = rocket.transform.position;
                         rocket.maxRange = shootRange;
@@ -130,8 +132,8 @@ public class Player : MonoBehaviour
                         rocket.RocketParamsChanger(MPB, rocketColor, rocketSize);
 
                         Vector3 randomVector = new Vector3(Random.Range(-shootSpreadCoeff, +shootSpreadCoeff), 0, Random.Range(-shootSpreadCoeff, +shootSpreadCoeff));
-                        Vector3 lastPoint = transform.position + transform.forward * shootRange + randomVector;
-                        Vector3 direction = lastPoint - transform.position;
+                        Vector3 lastPoint = transform.localPosition + transform.forward * shootRange + randomVector;
+                        Vector3 direction = lastPoint - transform.localPosition;
 
                         rocket.direction = direction;
 
@@ -181,7 +183,7 @@ public class Player : MonoBehaviour
                         //}
 
                         // лечим случайного раненного
-                        List<Player> injuredPlayers = main.playersInParty.Select(x => x).Where(x => x.curHealthPoint < x.maxHealthPoint).ToList();
+                        List<Player> injuredPlayers = main.playersInParty.Select(x => x).Where(x => x.curHealthPoint > 0 && x.curHealthPoint < x.maxHealthPoint).ToList();
                         if (injuredPlayers.Count != 0)
                         {
                             int rndIndex = Random.Range(0, injuredPlayers.Count);
@@ -295,7 +297,7 @@ public class Player : MonoBehaviour
 
                     //rndV3 = new Vector3(Random.Range(-main.maxOffsetInPaty_X, +main.maxOffsetInPaty_X), 0, Random.Range(-main.maxOffsetInPaty_Z, +main.maxOffsetInPaty_Z));
 
-                    main.RefreshPartyPositions(this, 0);
+                    main.RefreshPartyPositions(this);
                 }
             }
         }

@@ -47,12 +47,15 @@ public class VoidZone : MonoBehaviour
 
                 foreach (Player p in main.playersInParty)
                 {
-                    if ((p.transform.position - transform.position).magnitude <= radius)
+                    if (p != null)
                     {
-                        p.curHealthPoint -= damage;
-                        main.BodyHitReaction(p.mr, p.MPB, p.bodyColor);
+                        if ((p.transform.position - transform.position).magnitude <= radius)
+                        {
+                            p.curHealthPoint -= damage;
+                            main.BodyHitReaction(p.mr, p.MPB, p.bodyColor);
 
-                        main.PlayerDie(p);
+                            main.PlayerDie(p);
+                        }
                     }
                 }
 
