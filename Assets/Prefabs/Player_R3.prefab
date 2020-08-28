@@ -70,6 +70,7 @@ MonoBehaviour:
   rocketColor: {r: 1, g: 0, b: 0.083632946, a: 1}
   rocketSize: 1
   newOffsetPos: {x: 0, y: 0, z: 0}
+  collDamage: 3
 --- !u!136 &125101755362757307
 CapsuleCollider:
   m_ObjectHideFlags: 0

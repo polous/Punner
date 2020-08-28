@@ -46,13 +46,13 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   type: 0
-  shootRange: 40
-  shootSpreadCoeff: 0.5
+  shootRange: 30
+  shootSpreadCoeff: 1
   rocketDamage: 1
-  rocketSpeed: 20
+  rocketSpeed: 70
   reloadingTime: 0.2
   rotateSpeed: 5
-  maxHealthPoint: 10
+  maxHealthPoint: 15
   curHealthPoint: 0
   healthPanel: {fileID: 0}
   healthPanelFill: {fileID: 0}
@@ -70,6 +70,7 @@ MonoBehaviour:
   rocketColor: {r: 0.3490566, g: 0.15176372, b: 0, a: 1}
   rocketSize: 0.3
   newOffsetPos: {x: 0, y: 0, z: 0}
+  collDamage: 1
 --- !u!136 &125101755362757307
 CapsuleCollider:
   m_ObjectHideFlags: 0

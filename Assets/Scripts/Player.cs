@@ -51,7 +51,7 @@ public class Player : MonoBehaviour
 
     [HideInInspector] public Vector3 newOffsetPos = Vector3.zero;
 
-    //public Transform myPartyTransform;
+    public float collDamage;
 
 
     public void StartScene()

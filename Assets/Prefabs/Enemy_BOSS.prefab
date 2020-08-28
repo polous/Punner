@@ -12,7 +12,7 @@ GameObject:
   - component: {fileID: 4271476569983862472}
   - component: {fileID: 5285975947846714940}
   m_Layer: 0
-  m_Name: Enemy_R
+  m_Name: Enemy_BOSS
   m_TagString: Enemy
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -27,7 +27,7 @@ Transform:
   m_GameObject: {fileID: 3410451676722889283}
   m_LocalRotation: {x: 0, y: 1, z: 0, w: 0}
   m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_LocalScale: {x: 2, y: 2, z: 2}
   m_Children:
   - {fileID: 2229940631869834696}
   m_Father: {fileID: 0}
@@ -59,20 +59,20 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 2cf78d5cb957b52418c488ef072738f0, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  shootRange: 40
+  shootRange: 70
   shootSpreadCoeff: 2
   rocketDamage: 10
-  rocketSpeed: 3
-  reloadingTime: 2
-  maxHealthPoint: 5
+  rocketSpeed: 12
+  reloadingTime: 0.6
+  maxHealthPoint: 30
   curHealthPoint: 0
   main: {fileID: 0}
   coll: {fileID: 4271476569983862472}
-  bodyColor: {r: 0.8396226, g: 0, b: 0.800132, a: 1}
+  bodyColor: {r: 0.3962264, g: 0.33828765, b: 0.39351898, a: 1}
   mr: {fileID: 0}
-  rocketColor: {r: 1, g: 0, b: 0, a: 1}
-  rocketSize: 0.7
-  rocketFlyingThrough: 0
+  rocketColor: {r: 0.8867924, g: 0.12130654, b: 0.12130654, a: 1}
+  rocketSize: 1.2
+  rocketFlyingThrough: 1
   speed: 0
   distance: 0
   direction: 0

@@ -31,8 +31,8 @@ public class Enemy : MonoBehaviour
     public float speed;
     public float distance;
     public movingDirection direction;
-    Vector3 curDir;
-    Vector3 startPos;
+    [HideInInspector] public Vector3 curDir;
+    [HideInInspector] public Vector3 startPos;
 
     public float voidZoneDamage; // урон от войд зоны
     public float voidZoneRadius; // радиус войд зоны
@@ -41,6 +41,27 @@ public class Enemy : MonoBehaviour
     bool voidZoneReloading;
 
     public float collDamage;
+
+    [Space]
+    [Space]
+    [Header("BOSS SECTION")]
+    public bool isBoss;
+    int bossPattern;
+    [HideInInspector] public bool bossIsWaiting;
+    public int pattern_1_Cycles;
+    public int pattern_2_Cycles;
+    public int pattern_3_Cycles;
+    [HideInInspector] public List<Vector3> pattern_1_Positions;
+    [HideInInspector] public List<Vector3> pattern_2_Positions;
+    [HideInInspector] public List<Vector3> pattern_3_Positions;
+    public float patternReloadingTime;
+    bool patternReloading;
+    int moveIndex = 0;
+    public GameObject jailPrefab;
+    public GameObject wallPrefab;
+    public float jailHpBot, jailHpTop;
+    public float wallInstanceReloadingTime;
+    bool wallInstanceReloading;
 
     public void StartScene()
     {
@@ -60,6 +81,47 @@ public class Enemy : MonoBehaviour
         else if (direction == movingDirection.Right) curDir = Vector3.right;
         else if (direction == movingDirection.Down) curDir = Vector3.back;
         else if (direction == movingDirection.Up) curDir = Vector3.forward;
+
+        if (isBoss)
+        {
+            main.Boss = this;
+            bossIsWaiting = true;
+
+            bossPattern = Random.Range(1, 4);
+            pattern_1_Positions = new List<Vector3>();
+            pattern_2_Positions = new List<Vector3>();
+            pattern_3_Positions = new List<Vector3>();
+
+            pattern_1_Positions.Add(main.centerPosition.position);
+            pattern_2_Positions.Add(main.centerPosition.position);
+            pattern_3_Positions.Add(main.centerPosition.position);
+
+            for (int i = 0; i < pattern_1_Cycles; i++)
+            {
+                foreach (Transform tr in main.pattern_1_Positions)
+                {
+                    pattern_1_Positions.Add(tr.position);
+                }
+            }
+            for (int i = 0; i < pattern_2_Cycles; i++)
+            {
+                foreach (Transform tr in main.pattern_2_Positions)
+                {
+                    pattern_2_Positions.Add(tr.position);
+                }
+            }
+            for (int i = 0; i < pattern_3_Cycles; i++)
+            {
+                foreach (Transform tr in main.pattern_3_Positions)
+                {
+                    pattern_3_Positions.Add(tr.position);
+                }
+            }
+
+            pattern_1_Positions.Add(main.centerPosition.position);
+            pattern_2_Positions.Add(main.centerPosition.position);
+            pattern_3_Positions.Add(main.centerPosition.position);
+        }
     }
 
 
@@ -74,80 +136,265 @@ public class Enemy : MonoBehaviour
     void Update()
     {
         if (main == null) return;
+        if (main.Level == null) return;
 
-        if (transform.position.z > -50f && (main.Party.position - transform.position).magnitude <= 40f)
+        if (isBoss)
         {
-            // кастуем войд зоны
-            if (voidZoneDamage > 0)
+            if (bossIsWaiting == false)
             {
-                if (!voidZoneReloading)
+                //transform.localPosition += new Vector3(0, 0, Time.deltaTime * main.worldMoveSpeed);
+                //transform.Translate(Vector3.forward * Time.deltaTime * main.worldMoveSpeed, Space.World);
+
+                if (!patternReloading)
                 {
-                    VoidZone voidZone = main.voidZonesPool.GetChild(0).GetComponent<VoidZone>();
-                    voidZone.transform.parent = main.Level;
-                    voidZone.transform.localPosition = GetVoidZoneLocalPosition();
-                    voidZone.damage = voidZoneDamage;
-                    voidZone.radius = voidZoneRadius;
-                    voidZone.transform.localScale = Vector3.one * voidZoneRadius;
-                    voidZone.duration = voidZoneDuration;
-                    voidZone.isCasting = true;
-                    voidZone.Custer = this;
+                    if (bossPattern == 1)
+                    {
+                        // движение босса
+                        if (speed > 0)
+                        {
+                            if ((transform.position - pattern_1_Positions[moveIndex]).magnitude <= 0.1f)
+                            {
+                                moveIndex++;
+                                if (moveIndex == pattern_1_Positions.Count)
+                                {
+                                    transform.position = pattern_1_Positions.Last();
+                                    moveIndex = 0;
+                                    for (int i = 0; i < 20; i++)
+                                    {
+                                        bossPattern = Random.Range(1, 4);
+                                        if (bossPattern != 1) break;
+                                    }
 
-                    ParticleSystem ps = voidZone.GetComponentInChildren<ParticleSystem>(true);
-                    var psMain = ps.main;
-                    psMain.startSizeMultiplier = voidZoneRadius * 2f;
+                                    // "пережаряжаемся" (задержка между паттернами)
+                                    StartCoroutine(PatternReloading(patternReloadingTime));
+                                }
+                            }
+                            else
+                            {
+                                transform.position = Vector3.MoveTowards(transform.position, pattern_1_Positions[moveIndex], speed * Time.deltaTime);
+                            }
+                        }
 
-                    Transform vzce = main.voidZoneCastEffectsPool.GetChild(0);
-                    vzce.transform.parent = transform;
-                    vzce.transform.position = transform.position;
-                    voidZone.castEffect = vzce;
+                        // стрельба босса
+                        if (shootRange > 0)
+                        {
+                            if (!reloading)
+                            {
+                                // вытаскиваем из пула и настраиваем прожектайл 
+                                Rocket rocket = main.rocketsPool.GetChild(0).GetComponent<Rocket>();
+                                rocket.transform.parent = main.Level;
+                                rocket.transform.position = coll.bounds.center;
+                                rocket.startPoint = rocket.transform.position;
+                                rocket.maxRange = shootRange;
+                                rocket.MyShooterTag = tag;
+                                rocket.flying = true;
+                                rocket.speed = rocketSpeed;
+                                rocket.damage = rocketDamage;
+                                //rocket.RocketTypeChanger(rocketType.Bomb);
+                                rocket.RocketParamsChanger(MPB, rocketColor, rocketSize);
+                                rocket.flyThrough = rocketFlyingThrough;
 
-                    // "пережаряжаемся" (задержка между войд зонами)
-                    StartCoroutine(VoidZoneReloading(voidZoneReloadingTime));
+                                Vector3 randomVector = new Vector3(Random.Range(-shootSpreadCoeff, +shootSpreadCoeff), 0, Random.Range(-shootSpreadCoeff, +shootSpreadCoeff));
+                                Vector3 lastPoint = transform.localPosition + transform.forward * shootRange + randomVector;
+                                Vector3 direction = lastPoint - transform.localPosition;
+
+                                rocket.direction = direction;
+
+                                // "пережаряжаемся" (задержка между выстрелами)
+                                StartCoroutine(Reloading(reloadingTime));
+                            }
+                        }
+                    }
+
+                    else if (bossPattern == 2)
+                    {
+                        // движение босса
+                        if (speed > 0)
+                        {
+                            if ((transform.position - pattern_2_Positions[moveIndex]).magnitude <= 0.1f)
+                            {
+                                moveIndex++;
+                                if (moveIndex == pattern_2_Positions.Count)
+                                {
+                                    transform.position = pattern_2_Positions.Last();
+                                    moveIndex = 0;
+                                    for (int i = 0; i < 20; i++)
+                                    {
+                                        bossPattern = Random.Range(1, 4);
+                                        if (bossPattern != 2) break;
+                                    }
+
+                                    // "пережаряжаемся" (задержка между паттернами)
+                                    StartCoroutine(PatternReloading(patternReloadingTime));
+                                }
+                            }
+                            else
+                            {
+                                transform.position = Vector3.MoveTowards(transform.position, pattern_2_Positions[moveIndex], speed * Time.deltaTime);
+                            }
+                        }
+
+                        // кастуем войд зоны
+                        if (voidZoneDamage > 0)
+                        {
+                            if (!voidZoneReloading)
+                            {
+                                VoidZone voidZone = main.voidZonesPool.GetChild(0).GetComponent<VoidZone>();
+                                voidZone.transform.parent = main.Level;
+                                voidZone.transform.localPosition = GetVoidZoneLocalPosition();
+                                voidZone.damage = voidZoneDamage;
+                                voidZone.radius = voidZoneRadius;
+                                voidZone.transform.localScale = Vector3.one * voidZoneRadius;
+                                voidZone.duration = voidZoneDuration;
+                                voidZone.isCasting = true;
+                                voidZone.Custer = this;
+
+                                ParticleSystem ps = voidZone.GetComponentInChildren<ParticleSystem>(true);
+                                var psMain = ps.main;
+                                psMain.startSizeMultiplier = voidZoneRadius * 2f;
+
+                                Transform vzce = main.voidZoneCastEffectsPool.GetChild(0);
+                                vzce.transform.parent = transform;
+                                vzce.transform.position = transform.position;
+                                voidZone.castEffect = vzce;
+
+                                // "пережаряжаемся" (задержка между войд зонами)
+                                StartCoroutine(VoidZoneReloading(voidZoneReloadingTime));
+                            }
+                        }
+                    }
+
+                    else if (bossPattern == 3)
+                    {
+                        // движение босса
+                        if (speed > 0)
+                        {
+                            if ((transform.position - pattern_3_Positions[moveIndex]).magnitude <= 0.1f)
+                            {
+                                moveIndex++;
+                                if (moveIndex == pattern_3_Positions.Count)
+                                {
+                                    transform.position = pattern_3_Positions.Last();
+                                    moveIndex = 0;
+                                    for (int i = 0; i < 20; i++)
+                                    {
+                                        bossPattern = Random.Range(1, 4);
+                                        if (bossPattern != 3) break;
+                                    }
+
+                                    // "пережаряжаемся" (задержка между паттернами)
+                                    StartCoroutine(PatternReloading(patternReloadingTime));
+                                }
+                            }
+                            else
+                            {
+                                transform.position = Vector3.MoveTowards(transform.position, pattern_3_Positions[moveIndex], speed * Time.deltaTime);
+                            }
+                        }
+
+                        if (!wallInstanceReloading)
+                        {
+                            int type = Random.Range(0, 2);
+                            GameObject wall;
+                            if (type == 1) wall = Instantiate(jailPrefab, main.Level);
+                            else wall = Instantiate(wallPrefab, main.Level);
+
+                            wall.transform.position = new Vector3(Random.Range(-4.5f, 4.5f), wall.GetComponent<Collider>().bounds.center.y, transform.position.z - 5f);
+                            wall.transform.rotation = Quaternion.Euler(0, Random.Range(-30f, 30f), 0);
+
+                            if (type == 1)
+                            {
+                                Jail jail = wall.GetComponent<Jail>();
+                                jail.Bot = jailHpBot;
+                                jail.Top = jailHpTop;
+                                jail.StartScene();
+                            }
+
+                            // "перезарядка" инстанса препятствий (задержка между инстансом препятствий)
+                            StartCoroutine(WallInstanceReloading(wallInstanceReloadingTime));
+                        }
+                    }
                 }
             }
+        }
 
-
-            // движение врага
-            if (speed > 0)
+        // ЕСЛИ НЕ БОСС:
+        else
+        {
+            if (transform.position.z > -50f && (main.Party.position - transform.position).magnitude <= 40f)
             {
-                if ((transform.localPosition - startPos).magnitude >= distance)
+                // кастуем войд зоны
+                if (voidZoneDamage > 0)
                 {
-                    startPos = transform.localPosition;
-                    curDir = -curDir;
+                    if (!voidZoneReloading)
+                    {
+                        VoidZone voidZone = main.voidZonesPool.GetChild(0).GetComponent<VoidZone>();
+                        voidZone.transform.parent = main.Level;
+                        voidZone.transform.localPosition = GetVoidZoneLocalPosition();
+                        voidZone.damage = voidZoneDamage;
+                        voidZone.radius = voidZoneRadius;
+                        voidZone.transform.localScale = Vector3.one * voidZoneRadius;
+                        voidZone.duration = voidZoneDuration;
+                        voidZone.isCasting = true;
+                        voidZone.Custer = this;
+
+                        ParticleSystem ps = voidZone.GetComponentInChildren<ParticleSystem>(true);
+                        var psMain = ps.main;
+                        psMain.startSizeMultiplier = voidZoneRadius * 2f;
+
+                        Transform vzce = main.voidZoneCastEffectsPool.GetChild(0);
+                        vzce.transform.parent = transform;
+                        vzce.transform.position = transform.position;
+                        voidZone.castEffect = vzce;
+
+                        // "пережаряжаемся" (задержка между войд зонами)
+                        StartCoroutine(VoidZoneReloading(voidZoneReloadingTime));
+                    }
                 }
-                else
+
+
+                // движение врага
+                if (speed > 0)
                 {
-                    transform.Translate(curDir * Time.deltaTime * speed, Space.World);
+                    if ((transform.localPosition - startPos).magnitude >= distance)
+                    {
+                        startPos = transform.localPosition;
+                        curDir = -curDir;
+                    }
+                    else
+                    {
+                        transform.Translate(curDir * Time.deltaTime * speed, Space.World);
+                    }
                 }
-            }
 
-            // стрельба врага
-            if (shootRange > 0)
-            {
-                if (!reloading)
+                // стрельба врага
+                if (shootRange > 0)
                 {
-                    // вытаскиваем из пула и настраиваем прожектайл 
-                    Rocket rocket = main.rocketsPool.GetChild(0).GetComponent<Rocket>();
-                    rocket.transform.parent = main.Level;
-                    rocket.transform.position = coll.bounds.center;
-                    rocket.startPoint = rocket.transform.position;
-                    rocket.maxRange = shootRange;
-                    rocket.MyShooterTag = tag;
-                    rocket.flying = true;
-                    rocket.speed = rocketSpeed;
-                    rocket.damage = rocketDamage;
-                    //rocket.RocketTypeChanger(rocketType.Bomb);
-                    rocket.RocketParamsChanger(MPB, rocketColor, rocketSize);
-                    rocket.flyThrough = rocketFlyingThrough;
+                    if (!reloading)
+                    {
+                        // вытаскиваем из пула и настраиваем прожектайл 
+                        Rocket rocket = main.rocketsPool.GetChild(0).GetComponent<Rocket>();
+                        rocket.transform.parent = main.Level;
+                        rocket.transform.position = coll.bounds.center;
+                        rocket.startPoint = rocket.transform.position;
+                        rocket.maxRange = shootRange;
+                        rocket.MyShooterTag = tag;
+                        rocket.flying = true;
+                        rocket.speed = rocketSpeed;
+                        rocket.damage = rocketDamage;
+                        //rocket.RocketTypeChanger(rocketType.Bomb);
+                        rocket.RocketParamsChanger(MPB, rocketColor, rocketSize);
+                        rocket.flyThrough = rocketFlyingThrough;
 
-                    Vector3 randomVector = new Vector3(Random.Range(-shootSpreadCoeff, +shootSpreadCoeff), 0, Random.Range(-shootSpreadCoeff, +shootSpreadCoeff));
-                    Vector3 lastPoint = transform.localPosition + transform.forward * shootRange + randomVector;
-                    Vector3 direction = lastPoint - transform.localPosition;
+                        Vector3 randomVector = new Vector3(Random.Range(-shootSpreadCoeff, +shootSpreadCoeff), 0, Random.Range(-shootSpreadCoeff, +shootSpreadCoeff));
+                        Vector3 lastPoint = transform.localPosition + transform.forward * shootRange + randomVector;
+                        Vector3 direction = lastPoint - transform.localPosition;
 
-                    rocket.direction = direction;
+                        rocket.direction = direction;
 
-                    // "пережаряжаемся" (задержка между выстрелами)
-                    StartCoroutine(Reloading(reloadingTime));
+                        // "пережаряжаемся" (задержка между выстрелами)
+                        StartCoroutine(Reloading(reloadingTime));
+                    }
                 }
             }
         }
@@ -169,6 +416,22 @@ public class Enemy : MonoBehaviour
         voidZoneReloading = false;
     }
 
+    // "перезарядка" паттернов (задержка между паттернами)
+    IEnumerator PatternReloading(float patternReloadingTime)
+    {
+        patternReloading = true;
+        yield return new WaitForSeconds(patternReloadingTime);
+        patternReloading = false;
+    }
+
+    // "перезарядка" инстанса препятствий (задержка между инстансом препятствий)
+    IEnumerator WallInstanceReloading(float wallInstanceReloadingTime)
+    {
+        wallInstanceReloading = true;
+        yield return new WaitForSeconds(wallInstanceReloadingTime);
+        wallInstanceReloading = false;
+    }
+
     private void OnTriggerEnter(Collider other)
     {
         if (other.tag == "Player")
@@ -176,10 +439,20 @@ public class Enemy : MonoBehaviour
             Player plr = other.GetComponent<Player>();
             if (plr.inParty)
             {
-                plr.curHealthPoint -= collDamage;
-                plr.main.BodyHitReaction(plr.mr, plr.MPB, plr.bodyColor);
+                curHealthPoint -= plr.collDamage;
+                main.BodyHitReaction(mr, MPB, bodyColor);
 
-                plr.main.PlayerDie(plr);
+                if (curHealthPoint <= 0)
+                {
+                    main.EnemyDie(this);
+                }
+                else
+                {
+                    plr.curHealthPoint -= collDamage;
+                    plr.main.BodyHitReaction(plr.mr, plr.MPB, plr.bodyColor);
+
+                    plr.main.PlayerDie(plr);
+                }
             }
         }
     }

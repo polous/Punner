@@ -63,7 +63,7 @@ MonoBehaviour:
   shootSpreadCoeff: 0
   rocketDamage: 10
   rocketSpeed: 9
-  reloadingTime: 5
+  reloadingTime: 4
   maxHealthPoint: 15
   curHealthPoint: 0
   main: {fileID: 0}

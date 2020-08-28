@@ -57,7 +57,7 @@ MonoBehaviour:
   healthPanel: {fileID: 0}
   healthPanelFill: {fileID: 0}
   healPointsRecoveryCount: 10
-  healReloadingTime: 3
+  healReloadingTime: 5
   healReloading: 0
   myHealingEffect: {fileID: 0}
   inJail: 1
@@ -70,6 +70,7 @@ MonoBehaviour:
   rocketColor: {r: 0, g: 0, b: 0, a: 0}
   rocketSize: 0
   newOffsetPos: {x: 0, y: 0, z: 0}
+  collDamage: 0
 --- !u!136 &4161790574753120986
 CapsuleCollider:
   m_ObjectHideFlags: 0

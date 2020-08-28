@@ -47,7 +47,7 @@ public class Obstacles : MonoBehaviour
                 Jail jail = GetComponent<Jail>();
                 if (jail != null)
                 {
-                    jail.curHP -= plr.rocketDamage + 10;
+                    jail.curHP -= plr.collDamage;
                     jail.textMesh.text = jail.curHP.ToString();
                     plr.main.BodyHitReaction(jail.mr, jail.MPB, jail.bodyColor);
                     

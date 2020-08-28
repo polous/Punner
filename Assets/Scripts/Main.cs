@@ -67,6 +67,13 @@ public class Main : MonoBehaviour
     public bool shootingOnlyInMove;
     public bool inMove;
 
+    public List<Transform> pattern_1_Positions;
+    public List<Transform> pattern_2_Positions;
+    public List<Transform> pattern_3_Positions;
+    public Transform centerPosition;
+
+    public Enemy Boss;
+
     void Awake()
     {
         // заполняем пул прожектайлов
@@ -115,6 +122,7 @@ public class Main : MonoBehaviour
     void StartScene()
     {
         inMove = true;
+        Boss = null;
 
         messagePanel.text = "";
         globalTimer = 0;
@@ -316,6 +324,27 @@ public class Main : MonoBehaviour
     {
         if (e.curHealthPoint <= 0)
         {
+            if (e.isBoss)
+            {
+                storedPlayersListForNext.Clear();
+                foreach (Player p in playersInParty)
+                {
+                    storedPlayersListForNext.Add(new PlayerData(p));
+                }
+
+                foreach (Player p in playersInParty)
+                {
+                    Destroy(p.healthPanel.gameObject);
+                }
+
+                messagePanel.gameObject.SetActive(true);
+                messagePanel.text = "ТЫ ПОБЕДИЛ!\n за " + globalTimer.ToString("F0") + " сек";
+                repeatButton.SetActive(true);
+                NextButton.SetActive(true);
+
+                Level = null;
+            }
+
             e.enabled = false;
             foreach (MeshRenderer mr in e.GetComponentsInChildren<MeshRenderer>()) mr.enabled = false;
             e.GetComponent<Collider>().enabled = false;

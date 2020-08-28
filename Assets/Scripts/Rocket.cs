@@ -128,6 +128,9 @@ public class Rocket : MonoBehaviour
             if (MyShooterTag != "Enemy")
             {
                 Enemy enm = other.GetComponent<Enemy>();
+
+                if (enm.isBoss && enm.bossIsWaiting) return;
+
                 enm.curHealthPoint -= damage;
                 main.BodyHitReaction(enm.mr, enm.MPB, enm.bodyColor);
 

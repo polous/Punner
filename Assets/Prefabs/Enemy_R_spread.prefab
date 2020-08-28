@@ -59,19 +59,19 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 2cf78d5cb957b52418c488ef072738f0, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  shootRange: 40
-  shootSpreadCoeff: 4
+  shootRange: 70
+  shootSpreadCoeff: 5
   rocketDamage: 10
-  rocketSpeed: 15
+  rocketSpeed: 7
   reloadingTime: 0.5
-  maxHealthPoint: 15
+  maxHealthPoint: 25
   curHealthPoint: 0
   main: {fileID: 0}
   coll: {fileID: 4271476569983862472}
-  bodyColor: {r: 0.9339623, g: 0.8636414, b: 0.118948035, a: 1}
+  bodyColor: {r: 0.764151, g: 0.7282794, b: 0.34963512, a: 1}
   mr: {fileID: 0}
-  rocketColor: {r: 0.7735849, g: 0.686994, b: 0.12041653, a: 1}
-  rocketSize: 0.4
+  rocketColor: {r: 1, g: 0.8674699, b: 0, a: 1}
+  rocketSize: 0.6
   rocketFlyingThrough: 0
   speed: 0
   distance: 0
