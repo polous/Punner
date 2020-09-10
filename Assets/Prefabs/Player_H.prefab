@@ -67,7 +67,7 @@ MonoBehaviour:
   coll: {fileID: 4161790574753120986}
   bodyColor: {r: 0.17576434, g: 0.4339623, b: 0.0016375612, a: 1}
   mr: {fileID: 0}
-  rocketColor: {r: 0, g: 0, b: 0, a: 0}
+  rocketColor: {r: 0.17576434, g: 0.4339623, b: 0.0016375612, a: 1}
   rocketSize: 0
   newOffsetPos: {x: 0, y: 0, z: 0}
   collDamage: 0

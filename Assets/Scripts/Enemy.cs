@@ -15,8 +15,8 @@ public class Enemy : MonoBehaviour
 
     public float maxHealthPoint; // максимальный запас здоровья
     public float curHealthPoint; // текущий запас здоровья
-    //public Transform healthPanel;
-    //public Image healthPanelFill;
+    [HideInInspector] public Transform healthPanel;
+    [HideInInspector] public HealthPanel healthPanelScript;
 
     public Main main;
     public Collider coll;
@@ -42,6 +42,8 @@ public class Enemy : MonoBehaviour
 
     public float collDamage;
 
+    public float actionRange;
+
     [Space]
     [Space]
     [Header("BOSS SECTION")]
@@ -62,6 +64,16 @@ public class Enemy : MonoBehaviour
     public float jailHpBot, jailHpTop;
     public float wallInstanceReloadingTime;
     bool wallInstanceReloading;
+    Transform Throwpoint;
+
+
+    float ThrowVelocityCalc(float g, float ang, float x, float y)
+    {
+        float angRad = ang * Mathf.PI / 180f;
+        float v2 = (g * x * x) / (2 * (y - Mathf.Tan(angRad) * x) * Mathf.Pow(Mathf.Cos(angRad), 2));
+        float v = Mathf.Sqrt(Mathf.Abs(v2));
+        return v;
+    }
 
     public void StartScene()
     {
@@ -137,6 +149,9 @@ public class Enemy : MonoBehaviour
     {
         if (main == null) return;
         if (main.Level == null) return;
+        if (!main.readyToGo) return;
+
+        if (healthPanel != null) healthPanel.position = Camera.main.WorldToScreenPoint(transform.position + Vector3.up * coll.bounds.size.y * 1.2f);
 
         if (isBoss)
         {
@@ -183,7 +198,7 @@ public class Enemy : MonoBehaviour
                                 // вытаскиваем из пула и настраиваем прожектайл 
                                 Rocket rocket = main.rocketsPool.GetChild(0).GetComponent<Rocket>();
                                 rocket.transform.parent = main.Level;
-                                rocket.transform.position = coll.bounds.center;
+                                rocket.transform.position = new Vector3(transform.position.x, 0.8f, transform.position.z);
                                 rocket.startPoint = rocket.transform.position;
                                 rocket.maxRange = shootRange;
                                 rocket.MyShooterTag = tag;
@@ -249,9 +264,11 @@ public class Enemy : MonoBehaviour
                                 voidZone.isCasting = true;
                                 voidZone.Custer = this;
 
-                                ParticleSystem ps = voidZone.GetComponentInChildren<ParticleSystem>(true);
-                                var psMain = ps.main;
-                                psMain.startSizeMultiplier = voidZoneRadius * 2f;
+                                //ParticleSystem ps = voidZone.GetComponentInChildren<ParticleSystem>(true);
+                                //var psMain = ps.main;
+                                //psMain.startSizeMultiplier = voidZoneRadius * 2f;
+
+                                voidZone.VZShowRadius();
 
                                 Transform vzce = main.voidZoneCastEffectsPool.GetChild(0);
                                 vzce.transform.parent = transform;
@@ -294,13 +311,17 @@ public class Enemy : MonoBehaviour
 
                         if (!wallInstanceReloading)
                         {
-                            int type = Random.Range(0, 2);
+                            //int type = Random.Range(0, 2);
+                            int type = 1;
                             GameObject wall;
                             if (type == 1) wall = Instantiate(jailPrefab, main.Level);
                             else wall = Instantiate(wallPrefab, main.Level);
 
-                            wall.transform.position = new Vector3(Random.Range(-4.5f, 4.5f), wall.GetComponent<Collider>().bounds.center.y, transform.position.z - 5f);
-                            wall.transform.rotation = Quaternion.Euler(0, Random.Range(-30f, 30f), 0);
+                            Obstacles wallObstacle = wall.GetComponent<Obstacles>();
+                            Collider wallCollider = wall.GetComponent<Collider>();
+
+                            //wall.transform.position = new Vector3(Random.Range(-4.5f, 4.5f), wall.GetComponent<Collider>().bounds.center.y, transform.position.z - 5f);
+                            //wall.transform.rotation = Quaternion.Euler(0, Random.Range(-30f, 30f), 0);
 
                             if (type == 1)
                             {
@@ -309,6 +330,34 @@ public class Enemy : MonoBehaviour
                                 jail.Top = jailHpTop;
                                 jail.StartScene();
                             }
+
+                            float velocity;
+                            float ThrowDistX, ThrowDistY;
+                            float Ang = 50;
+
+                            Vector3 bornPos = new Vector3(Random.Range(-4.0f, 4.0f), 0.75f, transform.position.z - 6f);
+
+                            Throwpoint = transform.Find("Throwpoint");
+                            wall.transform.position = Throwpoint.position;
+
+                            Vector3 FromTo = bornPos - Throwpoint.position;
+                            Vector3 FromToXZ = new Vector3(FromTo.x, 0f, FromTo.z);
+
+                            ThrowDistX = FromToXZ.magnitude;
+                            ThrowDistY = FromTo.y;
+
+                            Throwpoint.rotation = Quaternion.LookRotation(FromToXZ);
+
+                            Throwpoint.localEulerAngles = new Vector3(-Ang, Throwpoint.localEulerAngles.y, Throwpoint.localEulerAngles.z);
+                            velocity = ThrowVelocityCalc(Physics.gravity.y, Ang, ThrowDistX, ThrowDistY);
+
+                            //ShowTrajectory(Throwpoint.position, velocity * Throwpoint.forward);
+
+                            wallObstacle.StartScene();
+                            wallObstacle.isBorning = true;
+                            wallObstacle.velocity = velocity * Throwpoint.forward;
+                            wallObstacle.origin = Throwpoint.position;
+                            wallCollider.enabled = false;
 
                             // "перезарядка" инстанса препятствий (задержка между инстансом препятствий)
                             StartCoroutine(WallInstanceReloading(wallInstanceReloadingTime));
@@ -321,7 +370,7 @@ public class Enemy : MonoBehaviour
         // ЕСЛИ НЕ БОСС:
         else
         {
-            if (transform.position.z > -50f && (main.Party.position - transform.position).magnitude <= 40f)
+            if (transform.position.z > -50f && (main.Party.position - transform.position).magnitude <= actionRange)
             {
                 // кастуем войд зоны
                 if (voidZoneDamage > 0)
@@ -331,6 +380,7 @@ public class Enemy : MonoBehaviour
                         VoidZone voidZone = main.voidZonesPool.GetChild(0).GetComponent<VoidZone>();
                         voidZone.transform.parent = main.Level;
                         voidZone.transform.localPosition = GetVoidZoneLocalPosition();
+                        
                         voidZone.damage = voidZoneDamage;
                         voidZone.radius = voidZoneRadius;
                         voidZone.transform.localScale = Vector3.one * voidZoneRadius;
@@ -338,9 +388,11 @@ public class Enemy : MonoBehaviour
                         voidZone.isCasting = true;
                         voidZone.Custer = this;
 
-                        ParticleSystem ps = voidZone.GetComponentInChildren<ParticleSystem>(true);
-                        var psMain = ps.main;
-                        psMain.startSizeMultiplier = voidZoneRadius * 2f;
+                        //ParticleSystem ps = voidZone.GetComponentInChildren<ParticleSystem>(true);
+                        //var psMain = ps.main;
+                        //psMain.startSizeMultiplier = voidZoneRadius * 2f;
+
+                        voidZone.VZShowRadius();
 
                         Transform vzce = main.voidZoneCastEffectsPool.GetChild(0);
                         vzce.transform.parent = transform;

@@ -111,6 +111,8 @@ public class Rocket : MonoBehaviour
                 if (plr.inParty)
                 {
                     plr.curHealthPoint -= damage;
+                    plr.healthPanel.gameObject.SetActive(true);
+                    plr.healthPanelScript.HitFunction(plr.curHealthPoint / plr.maxHealthPoint, damage);
                     main.BodyHitReaction(plr.mr, plr.MPB, plr.bodyColor);
 
                     main.PlayerDie(plr);
@@ -132,6 +134,10 @@ public class Rocket : MonoBehaviour
                 if (enm.isBoss && enm.bossIsWaiting) return;
 
                 enm.curHealthPoint -= damage;
+
+                enm.healthPanel.gameObject.SetActive(true);
+                enm.healthPanelScript.HitFunction(enm.curHealthPoint / enm.maxHealthPoint, damage);
+
                 main.BodyHitReaction(enm.mr, enm.MPB, enm.bodyColor);
 
                 main.EnemyDie(enm);

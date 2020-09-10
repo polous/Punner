@@ -16,7 +16,7 @@ public enum movingDirection
 
 public class Main : MonoBehaviour
 {
-    [HideInInspector] public Transform Level;
+    public Transform Level;
     int worldSize = 80;
     [HideInInspector] public float xPos;
     public float xLimit;
@@ -42,7 +42,8 @@ public class Main : MonoBehaviour
 
     public GameObject rocketPrefab; // префаб ракеты
     public Transform rocketsPool; // пул прожектайлов
-    public GameObject healthPanelPrefab; // префаб UI панели здоровья
+    public GameObject healthPanelPrefab; // префаб UI панели здоровья (игроки)
+    public GameObject healthPanelPrefabE; // префаб UI панели здоровья (враги)
     public Transform healthPanelsPool; // пул UI панелей здоровья
 
     public GameObject healingEffectPrefab; // префаб эффектов лечения
@@ -57,6 +58,7 @@ public class Main : MonoBehaviour
 
     public Text messagePanel;
     public GameObject repeatButton;
+    public GameObject resetButton;
     public GameObject NextButton;
     public List<GameObject> dontDestroyOnLoadGameObjects;
     public List<PlayerData> storedPlayersListForReset = new List<PlayerData>();
@@ -73,6 +75,10 @@ public class Main : MonoBehaviour
     public Transform centerPosition;
 
     public Enemy Boss;
+
+    public bool readyToGo;
+    public Image HandImage;
+    public Text LevelName;
 
     void Awake()
     {
@@ -112,6 +118,8 @@ public class Main : MonoBehaviour
             GameObject voidzonecasteffect = Instantiate(voidZoneCastEffectPrefab) as GameObject;
             voidzonecasteffect.transform.SetParent(voidZoneCastEffectsPool);
         }
+
+        StartCoroutine(resetToFirstLevel());
     }
 
     void Start()
@@ -124,32 +132,39 @@ public class Main : MonoBehaviour
         inMove = true;
         Boss = null;
 
+        readyToGo = false;
+
+        LevelName.text = "LEVEL 1";
+
         messagePanel.text = "";
         globalTimer = 0;
         repeatButton.SetActive(false);
+        resetButton.SetActive(false);
         NextButton.SetActive(false);
 
         Party.position = new Vector3(0, 0, -35);
 
-        int curSceneIndex = SceneManager.GetActiveScene().buildIndex;
-        if (curSceneIndex == 0)
-        {
-            Player plr = Instantiate(PlayerPrefab_Range).GetComponent<Player>();
-            plr.transform.SetParent(PartyPositionList[0]);
-            plr.transform.localPosition = Vector3.zero;
-            plr.inJail = false;
-            plr.inParty = true;
-            plr.coll.enabled = true;
-            playersInParty.Add(plr);
-        }
+        //int curSceneIndex = SceneManager.GetActiveScene().buildIndex;
+        //if (curSceneIndex == 1)
+        //{
+        //    Player plr = Instantiate(PlayerPrefab_Range).GetComponent<Player>();
+        //    plr.transform.SetParent(PartyPositionList[0]);
+        //    plr.transform.localPosition = Vector3.zero;
+        //    plr.inJail = false;
+        //    plr.inParty = true;
+        //    plr.coll.enabled = true;
+        //    playersInParty.Add(plr);
+        //}
 
         foreach (Player p in playersInParty)
         {
-            Transform hPanelp = Instantiate(healthPanelPrefab).transform;
+            Transform hPanelp = Instantiate(healthPanelPrefabE).transform;
             hPanelp.SetParent(healthPanelsPool);
             hPanelp.localScale = new Vector3(1, 1, 1);
             p.healthPanel = hPanelp;
-            p.healthPanelFill = hPanelp.GetChild(0).GetComponent<Image>();
+            //p.healthPanelFill = hPanelp.GetChild(0).GetComponent<Image>();
+            p.healthPanelScript = hPanelp.GetComponent<HealthPanel>();
+            p.healthPanel.gameObject.SetActive(false);
         }
 
         foreach (Player p in FindObjectsOfType<Player>())
@@ -159,6 +174,14 @@ public class Main : MonoBehaviour
 
         foreach (Enemy e in FindObjectsOfType<Enemy>())
         {
+            // инстанциируем для врагов хэлс бары
+            Transform hPanele = Instantiate(healthPanelPrefabE).transform;
+            hPanele.SetParent(healthPanelsPool);
+            hPanele.localScale = new Vector3(1, 1, 1);
+            e.healthPanel = hPanele;
+            e.healthPanelScript = hPanele.GetComponent<HealthPanel>();
+            e.healthPanel.gameObject.SetActive(false);
+
             e.StartScene();
         }
 
@@ -173,11 +196,12 @@ public class Main : MonoBehaviour
         }
 
         FinishLine Finish = FindObjectOfType<FinishLine>();
-        Finish.main = this;
+        if (Finish != null) Finish.main = this;
 
         RefreshPartyPositions(null);
 
-        Level = GameObject.Find("Level").transform;
+        GameObject level = GameObject.Find("Level");
+        if (level != null) Level = level.transform;
     }
 
 
@@ -197,6 +221,13 @@ public class Main : MonoBehaviour
         if (shootingOnlyInMove) inMove = false;
         if (Input.GetMouseButton(0))
         {
+            if (!readyToGo)
+            {
+                readyToGo = true;
+                HandImage.gameObject.SetActive(false);
+                return;
+            }
+
             inMove = true;
             if (!repeatButton.activeSelf)
             {
@@ -231,6 +262,8 @@ public class Main : MonoBehaviour
 
     private void LateUpdate()
     {
+        if (!readyToGo) return;
+
         if (Level != null) Level.Translate(Vector3.back * Time.deltaTime * worldMoveSpeed, Space.World);
 
         if (!repeatButton.activeSelf)
@@ -306,8 +339,9 @@ public class Main : MonoBehaviour
                 {
                     Level = null;
                     messagePanel.gameObject.SetActive(true);
-                    messagePanel.text = "Ты проиграл!\nСоберись, тряпка!";
+                    messagePanel.text = "Sorry, you lose.\nTry again!";
                     repeatButton.SetActive(true);
+                    resetButton.SetActive(true);
                     NextButton.SetActive(false);
                 }
             }
@@ -324,6 +358,10 @@ public class Main : MonoBehaviour
     {
         if (e.curHealthPoint <= 0)
         {
+            //e.healthPanel.GetComponent<Image>().enabled = false;
+            //e.healthPanel.GetComponentInChildren<Image>().enabled = false;
+            Destroy(e.healthPanel.gameObject);
+
             if (e.isBoss)
             {
                 storedPlayersListForNext.Clear();
@@ -338,8 +376,9 @@ public class Main : MonoBehaviour
                 }
 
                 messagePanel.gameObject.SetActive(true);
-                messagePanel.text = "ТЫ ПОБЕДИЛ!\n за " + globalTimer.ToString("F0") + " сек";
+                messagePanel.text = "Good job!\nIt took you " + globalTimer.ToString("F0") + " seconds";
                 repeatButton.SetActive(true);
+                resetButton.SetActive(true);
                 NextButton.SetActive(true);
 
                 Level = null;
@@ -357,6 +396,7 @@ public class Main : MonoBehaviour
 
             deathEffect.SetParent(deathEffectsPool);
             Destroy(e.gameObject);
+            //Destroy(e.healthPanel.gameObject);
         }
     }
 
@@ -396,10 +436,12 @@ public class Main : MonoBehaviour
                 //лечим всех
                 foreach (Player p in playersInParty)
                 {
-                    p.curHealthPoint += 5;
-                    if (p.curHealthPoint > p.maxHealthPoint)
+                    p.curHealthPoint += 2;
+                    p.healthPanelScript.HealFunction(p.curHealthPoint / p.maxHealthPoint, 2);
+                    if (p.curHealthPoint >= p.maxHealthPoint)
                     {
                         p.curHealthPoint = p.maxHealthPoint;
+                        if (p.healthPanel != null) p.healthPanel.gameObject.SetActive(false);
                     }
                 }
 
@@ -460,15 +502,16 @@ public class Main : MonoBehaviour
         StartCoroutine(resetCurrentLevel());
     }
 
+    public void ResetGame()
+    {
+        StartCoroutine(resetToFirstLevel());
+    }
+
     IEnumerator resetCurrentLevel()
     {
         int curSceneIndex = SceneManager.GetActiveScene().buildIndex;
-        if (curSceneIndex == 0)
-        {
-            yield return null;
-            SceneManager.LoadScene(curSceneIndex);
-        }
-        else
+
+        if (curSceneIndex > 1)
         {
             foreach (GameObject go in dontDestroyOnLoadGameObjects)
             {
@@ -480,6 +523,11 @@ public class Main : MonoBehaviour
                 Destroy(p.gameObject);
             }
             playersInParty.Clear();
+
+            foreach (Transform tr in healthPanelsPool)
+            {
+                Destroy(tr.gameObject);
+            }
 
             yield return null;
 
@@ -514,10 +562,61 @@ public class Main : MonoBehaviour
                 PlayerDataToPlayer(storedPlayersListForNext[i], plr);
             }
 
-            // прогрузилась сцена
+            //прогрузилась сцена
             yield return null;
             StartScene();
+
+            LevelName.text = "LEVEL " + (curSceneIndex).ToString();
         }
+        else
+        {
+            StartCoroutine(resetToFirstLevel());
+        }
+    }
+
+    IEnumerator resetToFirstLevel()
+    {
+        int curSceneIndex = 1;
+        foreach (GameObject go in dontDestroyOnLoadGameObjects)
+        {
+            DontDestroyOnLoad(go);
+        }
+
+        foreach (Player p in playersInParty)
+        {
+            Destroy(p.gameObject);
+        }
+        playersInParty.Clear();
+
+        foreach (Transform tr in healthPanelsPool)
+        {
+            Destroy(tr.gameObject);
+        }
+
+        storedPlayersListForReset.Clear();
+        storedPlayersListForNext.Clear();
+
+        yield return null;
+
+        AsyncOperation operation = SceneManager.LoadSceneAsync(curSceneIndex);
+        while (!operation.isDone)
+        {
+            yield return null;
+        }
+
+        Player plr = Instantiate(PlayerPrefab_Range).GetComponent<Player>();
+        plr.transform.SetParent(PartyPositionList[0]);
+        plr.transform.localPosition = Vector3.zero;
+        plr.inJail = false;
+        plr.inParty = true;
+        plr.coll.enabled = true;
+        playersInParty.Add(plr);
+
+        //прогрузилась сцена
+        yield return null;
+        StartScene();
+
+        HandImage.gameObject.SetActive(true);
     }
 
     public void LoadNextLevel()
@@ -548,6 +647,11 @@ public class Main : MonoBehaviour
             Destroy(p.gameObject);
         }
         playersInParty.Clear();
+
+        foreach (Transform tr in healthPanelsPool)
+        {
+            Destroy(tr.gameObject);
+        }
 
         yield return null;
 
@@ -585,6 +689,8 @@ public class Main : MonoBehaviour
         // прогрузилась сцена
         yield return null;
         StartScene();
+
+        LevelName.text = "LEVEL " + (nextSceneIndex).ToString();
     }
 
 

@@ -66,21 +66,40 @@ MonoBehaviour:
   reloadingTime: 0.6
   maxHealthPoint: 30
   curHealthPoint: 0
+  healthPanel: {fileID: 0}
+  healthPanelScript: {fileID: 0}
   main: {fileID: 0}
   coll: {fileID: 4271476569983862472}
   bodyColor: {r: 0.3962264, g: 0.33828765, b: 0.39351898, a: 1}
   mr: {fileID: 0}
-  rocketColor: {r: 0.8867924, g: 0.12130654, b: 0.12130654, a: 1}
+  rocketColor: {r: 0.7830189, g: 0.2048387, b: 0.114498034, a: 1}
   rocketSize: 1.2
   rocketFlyingThrough: 1
   speed: 0
   distance: 0
   direction: 0
+  curDir: {x: 0, y: 0, z: 0}
+  startPos: {x: 0, y: 0, z: 0}
   voidZoneDamage: 0
   voidZoneRadius: 0
   voidZoneDuration: 0
   voidZoneReloadingTime: 0
   collDamage: 5
+  actionRange: 40
+  isBoss: 0
+  bossIsWaiting: 0
+  pattern_1_Cycles: 0
+  pattern_2_Cycles: 0
+  pattern_3_Cycles: 0
+  pattern_1_Positions: []
+  pattern_2_Positions: []
+  pattern_3_Positions: []
+  patternReloadingTime: 0
+  jailPrefab: {fileID: 0}
+  wallPrefab: {fileID: 0}
+  jailHpBot: 0
+  jailHpTop: 0
+  wallInstanceReloadingTime: 0
 --- !u!1 &5136111900652495768
 GameObject:
   m_ObjectHideFlags: 0

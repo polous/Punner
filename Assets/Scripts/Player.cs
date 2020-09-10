@@ -25,8 +25,9 @@ public class Player : MonoBehaviour
 
     public float maxHealthPoint; // максимальный запас здоровья
     public float curHealthPoint; // текущий запас здоровья
-    public Transform healthPanel;
-    public Image healthPanelFill;
+    [HideInInspector] public Transform healthPanel;
+    //public Image healthPanelFill;
+    [HideInInspector] public HealthPanel healthPanelScript;
 
     public float healPointsRecoveryCount; // количество хп, восстанавливаемое хиллером
     public float healReloadingTime; // время перезарядки лечилки
@@ -74,10 +75,12 @@ public class Player : MonoBehaviour
     void Update()
     {
         if (main == null) return;
+        //if (!main.readyToGo) return;
+
         if (inParty && healthPanel != null)
         {
             healthPanel.position = Camera.main.WorldToScreenPoint(transform.position + Vector3.up * coll.bounds.size.y);
-            healthPanelFill.fillAmount = curHealthPoint / maxHealthPoint;
+            //healthPanelFill.fillAmount = curHealthPoint / maxHealthPoint;
         }
 
         if (!inJail)
@@ -116,7 +119,7 @@ public class Player : MonoBehaviour
                     if (!main.inMove) return;
                     // стрелок стреляет
                     Vector3 fwd = transform.forward; fwd.y = 0;
-                    if (!reloading)
+                    if (!reloading && main.readyToGo)
                     {
                         // вытаскиваем из пула и настраиваем прожектайл 
                         Rocket rocket = main.rocketsPool.GetChild(0).GetComponent<Rocket>();
@@ -146,7 +149,7 @@ public class Player : MonoBehaviour
                     if (!main.inMove) return;
                     // милишник тоже стреляет, но на короткой дистанции
                     Vector3 fwd = transform.forward; fwd.y = 0;
-                    if (!reloading)
+                    if (!reloading && main.readyToGo)
                     {
                         // вытаскиваем из пула и настраиваем прожектайл 
                         Rocket rocket = main.rocketsPool.GetChild(0).GetComponent<Rocket>();
@@ -188,9 +191,13 @@ public class Player : MonoBehaviour
                         {
                             int rndIndex = Random.Range(0, injuredPlayers.Count);
                             injuredPlayers[rndIndex].curHealthPoint += healPointsRecoveryCount;
-                            if (injuredPlayers[rndIndex].curHealthPoint > injuredPlayers[rndIndex].maxHealthPoint)
+
+                            injuredPlayers[rndIndex].healthPanelScript.HealFunction(injuredPlayers[rndIndex].curHealthPoint / injuredPlayers[rndIndex].maxHealthPoint, healPointsRecoveryCount);
+
+                            if (injuredPlayers[rndIndex].curHealthPoint >= injuredPlayers[rndIndex].maxHealthPoint)
                             {
                                 injuredPlayers[rndIndex].curHealthPoint = injuredPlayers[rndIndex].maxHealthPoint;
+                                if (injuredPlayers[rndIndex].healthPanel != null) injuredPlayers[rndIndex].healthPanel.gameObject.SetActive(false);
                             }
 
                             Transform healingEffect = main.healingEffectsPool.GetChild(0);
@@ -265,11 +272,13 @@ public class Player : MonoBehaviour
                     coll.enabled = true;
                     main.playersInParty.Add(this);
 
-                    Transform hPanelp = Instantiate(main.healthPanelPrefab).transform;
+                    Transform hPanelp = Instantiate(main.healthPanelPrefabE).transform;
                     hPanelp.SetParent(main.healthPanelsPool);
                     hPanelp.localScale = new Vector3(1, 1, 1);
                     healthPanel = hPanelp;
-                    healthPanelFill = hPanelp.GetChild(0).GetComponent<Image>();
+                    //healthPanelFill = hPanelp.GetChild(0).GetComponent<Image>();
+                    healthPanelScript = hPanelp.GetComponent<HealthPanel>();
+                    healthPanel.gameObject.SetActive(false);
 
                     //newOffsetPos = transform.localPosition;
                 }

@@ -28,18 +28,22 @@ public class FinishLine : MonoBehaviour
                 }
 
                 main.messagePanel.gameObject.SetActive(true);
-                main.messagePanel.text = "ТЫ ПОБЕДИЛ!\n за " + main.globalTimer.ToString("F0") + " сек";
+                main.messagePanel.text = "Good job!\nIt took you " + main.globalTimer.ToString("F0") + " seconds";
                 main.repeatButton.SetActive(true);
+                main.resetButton.SetActive(false);
                 main.NextButton.SetActive(true);
             }
             else
             {
-                main.messagePanel.gameObject.SetActive(true);
-                main.messagePanel.text = "Думаешь, что победил!?\nА как на счет\nглавного испытания!?";
+                //main.messagePanel.gameObject.SetActive(true);
+                //main.messagePanel.text = "Думаешь, что победил!?\nА как на счет\nглавного испытания!?";
                 main.Boss.transform.parent = null;
-                main.Boss.bossIsWaiting = true;
+                //main.Boss.bossIsWaiting = true;
 
-                StartCoroutine(MessageDeactivate());
+                //StartCoroutine(MessageDeactivate());
+
+                main.Boss.bossIsWaiting = false;
+                Destroy(gameObject);
             }
         }
     }

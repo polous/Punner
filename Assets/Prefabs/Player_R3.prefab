@@ -50,12 +50,12 @@ MonoBehaviour:
   shootSpreadCoeff: 0.3
   rocketDamage: 5
   rocketSpeed: 50
-  reloadingTime: 1.5
+  reloadingTime: 1
   rotateSpeed: 5
   maxHealthPoint: 15
   curHealthPoint: 0
   healthPanel: {fileID: 0}
-  healthPanelFill: {fileID: 0}
+  healthPanelScript: {fileID: 0}
   healPointsRecoveryCount: 0
   healReloadingTime: 0
   healReloading: 0
@@ -65,9 +65,9 @@ MonoBehaviour:
   changeParent: 0
   main: {fileID: 0}
   coll: {fileID: 125101755362757307}
-  bodyColor: {r: 0.8867924, g: 0.29699183, b: 0.32081726, a: 1}
+  bodyColor: {r: 0.8301887, g: 0.3250267, b: 0.4207153, a: 1}
   mr: {fileID: 0}
-  rocketColor: {r: 1, g: 0, b: 0.083632946, a: 1}
+  rocketColor: {r: 0.8301887, g: 0.3250267, b: 0.4207153, a: 1}
   rocketSize: 1
   newOffsetPos: {x: 0, y: 0, z: 0}
   collDamage: 3

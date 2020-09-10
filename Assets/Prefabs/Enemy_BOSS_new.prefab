@@ -1,5 +1,35 @@
 %YAML 1.1
 %TAG !u! tag:unity3d.com,2011:
+--- !u!1 &1636086258656697824
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 4766690074036149978}
+  m_Layer: 0
+  m_Name: Throwpoint
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &4766690074036149978
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1636086258656697824}
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 1, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_Children: []
+  m_Father: {fileID: 2374227313879846974}
+  m_RootOrder: 1
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &3410451676722889283
 GameObject:
   m_ObjectHideFlags: 0
@@ -30,6 +60,7 @@ Transform:
   m_LocalScale: {x: 2, y: 2, z: 2}
   m_Children:
   - {fileID: 2229940631869834696}
+  - {fileID: 4766690074036149978}
   m_Father: {fileID: 0}
   m_RootOrder: 0
   m_LocalEulerAnglesHint: {x: 0, y: 180, z: 0}
@@ -59,33 +90,36 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 2cf78d5cb957b52418c488ef072738f0, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  shootRange: 70
-  shootSpreadCoeff: 2
-  rocketDamage: 10
+  shootRange: 50
+  shootSpreadCoeff: 10
+  rocketDamage: 1
   rocketSpeed: 12
-  reloadingTime: 0.5
-  maxHealthPoint: 100
+  reloadingTime: 0.1
+  maxHealthPoint: 200
   curHealthPoint: 0
+  healthPanel: {fileID: 0}
+  healthPanelScript: {fileID: 0}
   main: {fileID: 0}
   coll: {fileID: 4271476569983862472}
   bodyColor: {r: 0.5079155, g: 0, b: 0.509434, a: 1}
   mr: {fileID: 0}
   rocketColor: {r: 0.8867924, g: 0.12130654, b: 0.12130654, a: 1}
-  rocketSize: 1.2
+  rocketSize: 0.8
   rocketFlyingThrough: 1
   speed: 6
   distance: 8
   direction: 0
   curDir: {x: 0, y: 0, z: 0}
   startPos: {x: 0, y: 0, z: 0}
-  voidZoneDamage: 10
-  voidZoneRadius: 3
-  voidZoneDuration: 3
-  voidZoneReloadingTime: 2
+  voidZoneDamage: 2
+  voidZoneRadius: 2.4
+  voidZoneDuration: 1.5
+  voidZoneReloadingTime: 0.6
   collDamage: 5
+  actionRange: 40
   isBoss: 1
   bossIsWaiting: 0
-  pattern_1_Cycles: 2
+  pattern_1_Cycles: 3
   pattern_2_Cycles: 4
   pattern_3_Cycles: 8
   pattern_1_Positions: []

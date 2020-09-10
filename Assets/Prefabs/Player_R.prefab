@@ -46,16 +46,16 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   type: 0
-  shootRange: 30
-  shootSpreadCoeff: 1
+  shootRange: 40
+  shootSpreadCoeff: 3.5
   rocketDamage: 1
-  rocketSpeed: 70
-  reloadingTime: 0.2
+  rocketSpeed: 55
+  reloadingTime: 0.15
   rotateSpeed: 5
   maxHealthPoint: 15
   curHealthPoint: 0
   healthPanel: {fileID: 0}
-  healthPanelFill: {fileID: 0}
+  healthPanelScript: {fileID: 0}
   healPointsRecoveryCount: 0
   healReloadingTime: 0
   healReloading: 0
@@ -65,10 +65,10 @@ MonoBehaviour:
   changeParent: 0
   main: {fileID: 0}
   coll: {fileID: 125101755362757307}
-  bodyColor: {r: 0, g: 0.3333335, b: 1, a: 1}
+  bodyColor: {r: 0.08962262, g: 0.35099137, b: 1, a: 1}
   mr: {fileID: 0}
-  rocketColor: {r: 0.3490566, g: 0.15176372, b: 0, a: 1}
-  rocketSize: 0.3
+  rocketColor: {r: 0.08962262, g: 0.35099137, b: 1, a: 1}
+  rocketSize: 0.45
   newOffsetPos: {x: 0, y: 0, z: 0}
   collDamage: 1
 --- !u!136 &125101755362757307
